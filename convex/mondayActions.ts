@@ -30,8 +30,15 @@ export const postBriefToMonday = action({
     try {
       console.log(`[Monday Action] Posting update to job ${jobId}`);
       
-      // Create brief summary update
-      const briefSummary = buildBriefSummary(args.briefData);
+      // Store PDF in Convex storage if provided
+      let pdfUrl = null;
+      if (args.pdfBase64) {
+        pdfUrl = await storePdfAndGetUrl(ctx, args.pdfBase64, args.briefData.campaign_name);
+        console.log(`[Monday Action] PDF stored at: ${pdfUrl}`);
+      }
+      
+      // Create brief summary update with PDF link
+      const briefSummary = buildBriefSummary(args.briefData, pdfUrl);
       const updateId = await createMondayUpdate(mondayApiKey, jobId, briefSummary);
       
       console.log(`[Monday Action] Successfully created update ${updateId}`);
@@ -55,6 +62,33 @@ export const postBriefToMonday = action({
     }
   },
 });
+
+// Store PDF in Convex storage and return URL
+async function storePdfAndGetUrl(
+  ctx: any,
+  pdfBase64: string,
+  campaignName: string
+): Promise<string> {
+  // Convert base64 to blob
+  const byteCharacters = atob(pdfBase64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: 'application/pdf' });
+  
+  // Generate filename
+  const filename = `${campaignName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.pdf`;
+  
+  // Upload to Convex storage
+  const storageId = await ctx.storage.store(blob);
+  
+  // Get public URL
+  const url = await ctx.storage.getUrl(storageId);
+  
+  return url;
+}
 
 // Helper function to create Monday update (now inside action)
 async function createMondayUpdate(

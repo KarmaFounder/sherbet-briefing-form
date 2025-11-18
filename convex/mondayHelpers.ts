@@ -133,7 +133,7 @@ export async function createOutOfScopeNotification(
 }
 
 // Build brief summary text for Monday update
-export function buildBriefSummary(briefData: any): string {
+export function buildBriefSummary(briefData: any, pdfUrl?: string | null): string {
   const lines = [
     `📋 NEW CAMPAIGN BRIEF`,
     ``,
@@ -156,9 +156,12 @@ export function buildBriefSummary(briefData: any): string {
     `• Sign-off: ${briefData.sign_off_date}`,
     ``,
     `Billing: ${briefData.billing_type}`,
-    ``,
-    `📄 A detailed PDF brief has been generated and downloaded to the submitter's computer.`,
   ];
+
+  if (pdfUrl) {
+    lines.push(``);
+    lines.push(`📄 Download Full Brief PDF: ${pdfUrl}`);
+  }
 
   return lines.join("\n");
 }
