@@ -103,8 +103,11 @@ export const submitBrief = mutation({
     pdf_base64: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Insert brief into database
-    const id = await ctx.db.insert("briefs", args);
+    // Extract pdf_base64 before inserting to database (not stored in DB)
+    const { pdf_base64, ...briefData } = args;
+    
+    // Insert brief into database (without pdf_base64)
+    const id = await ctx.db.insert("briefs", briefData);
 
     // Monday.com integration
     try {
@@ -119,7 +122,7 @@ export const submitBrief = mutation({
           
           // Create brief summary update with PDF attachment
           const briefSummary = buildBriefSummary(args);
-          await createMondayUpdate(mondayApiKey, jobId, briefSummary, args.pdf_base64);
+          await createMondayUpdate(mondayApiKey, jobId, briefSummary, pdf_base64);
           
           // If Out of Scope, create second update with @mentions
           if (args.billing_type === "OutOfScope") {
