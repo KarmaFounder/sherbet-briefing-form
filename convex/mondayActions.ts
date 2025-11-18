@@ -114,10 +114,15 @@ async function attachFileToUpdate(
     const byteArray = new Uint8Array(byteNumbers);
     const blob = new Blob([byteArray], { type: 'application/pdf' });
 
-    // Create FormData with the file
+    // Create FormData using GraphQL multipart request spec
     const formData = new FormData();
-    formData.append('query', `mutation ($file: File!) { add_file_to_update (update_id: ${updateId}, file: $file) { id } }`);
-    formData.append('variables[file]', blob, 'campaign-brief.pdf');
+    const query = `mutation ($updateId: ID!, $file: File!) { add_file_to_update (update_id: $updateId, file: $file) { id } }`;
+
+    // variables has file: null and the actual file is mapped by the 'map' field
+    formData.append('query', query);
+    formData.append('variables', JSON.stringify({ updateId, file: null }));
+    formData.append('map', JSON.stringify({ '0': ['variables.file'] }));
+    formData.append('0', blob, 'campaign-brief.pdf');
 
     const response = await fetch("https://api.monday.com/v2", {
       method: "POST",
