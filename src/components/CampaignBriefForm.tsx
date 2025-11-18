@@ -21,20 +21,20 @@ import * as FormOptions from "../lib/formOptions";
 import { generateBriefPDF } from "../lib/pdfGenerator";
 
 const INTERNAL_USERS = [
-  { name: "Raffaele Mc Creadie", email: "raffaele@sherbet.com", phone: "+27 82 456 7890" },
-  { name: "Lara Mc Creadie", email: "lara@sherbet.com", phone: "+27 82 456 7891" },
-  { name: "Inge Liebenberg", email: "inge@sherbet.com", phone: "+27 82 456 7892" },
-  { name: "Danielle Piek", email: "danielle@sherbet.com", phone: "+27 82 456 7893" },
-  { name: "Danica Ravic", email: "danica@sherbet.com", phone: "+27 82 456 7894" },
-  { name: "Petronella Mphahlele", email: "petronella@sherbet.com", phone: "+27 82 456 7895" },
-  { name: "Silindile Dlamini", email: "silindile@sherbet.com", phone: "+27 82 456 7896" },
-  { name: "Sammie Lee Rice", email: "sammie@sherbet.com", phone: "+27 82 456 7897" },
-  { name: "Emma Ghirlada", email: "emma@sherbet.com", phone: "+27 82 456 7898" },
-  { name: "Christine Chivers", email: "christine@sherbet.com", phone: "+27 82 456 7899" },
-  { name: "Ayushie Atchannah", email: "ayushie@sherbet.com", phone: "+27 82 456 7800" },
-  { name: "Nakai Williams", email: "nakai@sherbet.com", phone: "+27 82 456 7801" },
-  { name: "Elton Matanda", email: "elton@sherbet.com", phone: "+27 82 456 7802" },
-  { name: "Lesedi Gwebu", email: "lesedi@sherbet.com", phone: "+27 82 456 7803" },
+  { name: "Raffaele Mc Creadie", email: "raffaele@sherbetagency.com", phone: "+27 82 456 7890" },
+  { name: "Lara Mc Creadie", email: "lara@sherbetagency.com", phone: "+27 82 456 7891" },
+  { name: "Inge Liebenberg", email: "inge@sherbetagency.com", phone: "+27 82 456 7892" },
+  { name: "Danielle Piek", email: "danielle@sherbetagency.com", phone: "+27 82 456 7893" },
+  { name: "Danica Ravic", email: "danica@sherbetagency.com", phone: "+27 82 456 7894" },
+  { name: "Petronella Mphahlele", email: "petronella@sherbetagency.com", phone: "+27 82 456 7895" },
+  { name: "Silindile Dlamini", email: "silindile@sherbetagency.com", phone: "+27 82 456 7896" },
+  { name: "Sammie Lee Rice", email: "sammie@sherbetagency.com", phone: "+27 82 456 7897" },
+  { name: "Emma Ghirlada", email: "emma@sherbetagency.com", phone: "+27 82 456 7898" },
+  { name: "Christine Chivers", email: "christine@sherbetagency.com", phone: "+27 82 456 7899" },
+  { name: "Ayushie Atchannah", email: "ayushie@sherbetagency.com", phone: "+27 82 456 7800" },
+  { name: "Nakai Williams", email: "nakai@sherbetagency.com", phone: "+27 82 456 7801" },
+  { name: "Elton Matanda", email: "elton@sherbetagency.com", phone: "+27 82 456 7802" },
+  { name: "Lesedi Gwebu", email: "lesedi@sherbetagency.com", phone: "+27 82 456 7803" },
 ] as const;
 
 const CATEGORY_OPTIONS = [
@@ -985,7 +985,7 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
                   const availableSizes = getAvailableSizes(row.platform, row.format);
                   return (
                     <div key={idx} className="space-y-3 rounded-md border border-gray-200 p-3 bg-gray-50">
-                      <div className="grid grid-cols-[2fr,2fr,2fr,1fr,auto] gap-2 items-end">
+                      <div className="grid grid-cols-[2fr,2fr,2fr,auto,auto] gap-2 items-end">
                         <div className="space-y-1">
                           <Label className="text-xs">Platform</Label>
                           <Select
@@ -1058,27 +1058,47 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Qty</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={row.quantity}
-                            onChange={(e) => {
-                              const newQty = Math.max(1, Number(e.target.value));
-                              const updated = [...socialRows];
-                              updated[idx].quantity = newQty;
-                              // Adjust descriptions array length to match quantity
-                              const currentDescs = updated[idx].descriptions || [];
-                              if (newQty > currentDescs.length) {
-                                // Add empty strings for new items
-                                updated[idx].descriptions = [...currentDescs, ...Array(newQty - currentDescs.length).fill("")];
-                              } else {
-                                // Trim to new quantity
+                          <Label className="text-xs">Quantity</Label>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-10 w-10 rounded-md"
+                              onClick={() => {
+                                const newQty = Math.max(1, row.quantity - 1);
+                                const updated = [...socialRows];
+                                updated[idx].quantity = newQty;
+                                // Adjust descriptions array
+                                const currentDescs = updated[idx].descriptions || [];
                                 updated[idx].descriptions = currentDescs.slice(0, newQty);
-                              }
-                              setSocialRows(updated);
-                            }}
-                          />
+                                setSocialRows(updated);
+                              }}
+                              disabled={row.quantity <= 1}
+                            >
+                              <span className="text-lg">−</span>
+                            </Button>
+                            <div className="flex h-10 w-12 items-center justify-center rounded-md border bg-white text-center font-semibold">
+                              {row.quantity}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-10 w-10 rounded-md"
+                              onClick={() => {
+                                const newQty = row.quantity + 1;
+                                const updated = [...socialRows];
+                                updated[idx].quantity = newQty;
+                                // Adjust descriptions array
+                                const currentDescs = updated[idx].descriptions || [];
+                                updated[idx].descriptions = [...currentDescs, ...Array(newQty - currentDescs.length).fill("")];
+                                setSocialRows(updated);
+                              }}
+                            >
+                              <span className="text-lg">+</span>
+                            </Button>
+                          </div>
                         </div>
                         <Button
                           type="button"
