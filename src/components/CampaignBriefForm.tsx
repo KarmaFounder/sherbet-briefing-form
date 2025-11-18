@@ -21,20 +21,20 @@ import * as FormOptions from "../lib/formOptions";
 import { generateBriefPDF } from "../lib/pdfGenerator";
 
 const INTERNAL_USERS = [
-  { name: "Raffaele Mc Creadie", email: "raffaele@sherbetagency.com", phone: "+27 82 456 7890" },
-  { name: "Lara Mc Creadie", email: "lara@sherbetagency.com", phone: "+27 82 456 7891" },
-  { name: "Inge Liebenberg", email: "inge@sherbetagency.com", phone: "+27 82 456 7892" },
-  { name: "Danielle Piek", email: "danielle@sherbetagency.com", phone: "+27 82 456 7893" },
-  { name: "Danica Ravic", email: "danica@sherbetagency.com", phone: "+27 82 456 7894" },
-  { name: "Petronella Mphahlele", email: "petronella@sherbetagency.com", phone: "+27 82 456 7895" },
-  { name: "Silindile Dlamini", email: "silindile@sherbetagency.com", phone: "+27 82 456 7896" },
-  { name: "Sammie Lee Rice", email: "sammie@sherbetagency.com", phone: "+27 82 456 7897" },
-  { name: "Emma Ghirlada", email: "emma@sherbetagency.com", phone: "+27 82 456 7898" },
-  { name: "Christine Chivers", email: "christine@sherbetagency.com", phone: "+27 82 456 7899" },
-  { name: "Ayushie Atchannah", email: "ayushie@sherbetagency.com", phone: "+27 82 456 7800" },
-  { name: "Nakai Williams", email: "nakai@sherbetagency.com", phone: "+27 82 456 7801" },
-  { name: "Elton Matanda", email: "elton@sherbetagency.com", phone: "+27 82 456 7802" },
-  { name: "Lesedi Gwebu", email: "lesedi@sherbetagency.com", phone: "+27 82 456 7803" },
+  { name: "Raffaele Mc Creadie", email: "raffaele@sherbetagency.com", phone: "+27 82 771 5667" },
+  { name: "Lara Mc Creadie", email: "lara@sherbetagency.com", phone: "+27 82 502 4188" },
+  { name: "Inge Liebenberg", email: "inge@sherbetagency.com", phone: "+27 76 955 3358" },
+  { name: "Danielle Piek", email: "danielle@sherbetagency.com", phone: "+27 82 441 6209" },
+  { name: "Danica Ravic", email: "danica@sherbetagency.com", phone: "+27 81 425 3112" },
+  { name: "Petronella Mphahlele", email: "petronella@sherbetagency.com", phone: "+27 60 662 5637" },
+  { name: "Silindile Dlamini", email: "silindile@sherbetagency.com", phone: "+27 67 104 6487" },
+  { name: "Sammie Lee Rice", email: "sammie@sherbetagency.com", phone: "+27 64 656 0903" },
+  { name: "Emma Ghirlada", email: "emma@sherbetagency.com", phone: "+27 74 429 1961" },
+  { name: "Christine Chivers", email: "christine@sherbetagency.com", phone: "+27 74 429 1961" },
+  { name: "Ayushie Atchannah", email: "ayushie@sherbetagency.com", phone: "+27 72 680 0500" },
+  { name: "Nakai Williams", email: "nakai@sherbetagency.com", phone: "+27 66 373 5300" },
+  { name: "Elton Matanda", email: "elton@sherbetagency.com", phone: "+27 72 362 7229" },
+  { name: "Lesedi Gwebu", email: "lesedi@sherbetagency.com", phone: "+27 76 341 6894" },
 ] as const;
 
 const CATEGORY_OPTIONS = [
