@@ -1,7 +1,17 @@
-// Extract job ID from Monday email (format: job-123456@sherbetagency.monday.com)
+// Extract job ID from Monday email
+// Handles formats:
+// - job-123456@sherbetagency.monday.com
+// - zo-adv_pulse_5086908443_d98c14f7a796d4aafb52__73877240@euc1.mx.monday.com
 export function extractJobIdFromEmail(email: string): string | null {
-  const match = email.match(/job-(\d+)@/);
-  return match ? match[1] : null;
+  // Try standard format: job-123456@
+  let match = email.match(/job-(\d+)@/);
+  if (match) return match[1];
+  
+  // Try Monday.com pulse format: pulse_5086908443_
+  match = email.match(/pulse_(\d+)_/);
+  if (match) return match[1];
+  
+  return null;
 }
 
 // User IDs for @mentions
