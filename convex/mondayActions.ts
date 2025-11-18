@@ -33,7 +33,7 @@ export const postBriefToMonday = action({
       // Store PDF in Convex storage if provided
       let pdfUrl = null;
       if (args.pdfBase64) {
-        pdfUrl = await storePdfAndGetUrl(ctx, args.pdfBase64, args.briefData.campaign_name);
+        pdfUrl = await storePdfAndGetUrl(ctx, args.pdfBase64);
         console.log(`[Monday Action] PDF stored at: ${pdfUrl}`);
       }
       
@@ -66,8 +66,7 @@ export const postBriefToMonday = action({
 // Store PDF in Convex storage and return URL
 async function storePdfAndGetUrl(
   ctx: any,
-  pdfBase64: string,
-  campaignName: string
+  pdfBase64: string
 ): Promise<string> {
   // Convert base64 to blob
   const byteCharacters = atob(pdfBase64);
@@ -77,9 +76,6 @@ async function storePdfAndGetUrl(
   }
   const byteArray = new Uint8Array(byteNumbers);
   const blob = new Blob([byteArray], { type: 'application/pdf' });
-  
-  // Generate filename
-  const filename = `${campaignName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.pdf`;
   
   // Upload to Convex storage
   const storageId = await ctx.storage.store(blob);
@@ -128,52 +124,6 @@ async function createMondayUpdate(
   }
 
   return data.data.create_update.id;
-}
-
-// Helper function to attach PDF file to Monday.com update
-async function attachFileToUpdate(
-  apiKey: string,
-  updateId: string,
-  pdfBase64: string
-): Promise<void> {
-  try {
-    // Convert base64 to blob
-    const byteCharacters = atob(pdfBase64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: 'application/pdf' });
-
-    // Create FormData using GraphQL multipart request spec
-    const formData = new FormData();
-    const query = `mutation ($updateId: ID!, $file: File!) { add_file_to_update (update_id: $updateId, file: $file) { id } }`;
-
-    // variables has file: null and the actual file is mapped by the 'map' field
-    formData.append('query', query);
-    formData.append('variables', JSON.stringify({ updateId, file: null }));
-    formData.append('map', JSON.stringify({ '0': ['variables.file'] }));
-    formData.append('0', blob, 'campaign-brief.pdf');
-
-    const response = await fetch("https://api.monday.com/v2", {
-      method: "POST",
-      headers: {
-        Authorization: apiKey,
-      },
-      body: formData,
-    });
-
-    const data = await response.json();
-    
-    if (data.errors) {
-      console.error("Failed to attach PDF to Monday update:", data.errors);
-    } else {
-      console.log("PDF successfully attached to Monday update");
-    }
-  } catch (error) {
-    console.error("Error attaching PDF:", error);
-  }
 }
 
 // Helper function to create Out of Scope notification

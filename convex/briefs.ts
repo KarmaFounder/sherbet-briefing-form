@@ -108,7 +108,7 @@ export const submitBrief = mutation({
 
     // Monday.com integration - schedule action to run asynchronously
     // This doesn't block the mutation from completing
-    ctx.scheduler.runAfter(0, internal.mondayActions.postBriefToMonday, {
+    ctx.scheduler.runAfter(0, (internal as any).mondayActions.postBriefToMonday, {
       briefData: briefData,
       pdfBase64: pdf_base64,
     });
