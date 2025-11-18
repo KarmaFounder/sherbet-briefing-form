@@ -156,6 +156,8 @@ export function buildBriefSummary(briefData: any): string {
     `• Sign-off: ${briefData.sign_off_date}`,
     ``,
     `Billing: ${briefData.billing_type}`,
+    ``,
+    `📄 A detailed PDF brief has been generated and downloaded to the submitter's computer.`,
   ];
 
   return lines.join("\n");

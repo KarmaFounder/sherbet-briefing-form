@@ -34,10 +34,8 @@ export const postBriefToMonday = action({
       const briefSummary = buildBriefSummary(args.briefData);
       const updateId = await createMondayUpdate(mondayApiKey, jobId, briefSummary);
       
-      // Attach PDF if provided
-      if (args.pdfBase64 && updateId) {
-        await attachFileToUpdate(mondayApiKey, updateId, args.pdfBase64);
-      }
+      console.log(`[Monday Action] Successfully created update ${updateId}`);
+      // Note: PDF is downloaded to user's computer when they submit the brief
       
       // If Out of Scope, create second update with @mentions
       if (args.briefData.billing_type === "OutOfScope") {
