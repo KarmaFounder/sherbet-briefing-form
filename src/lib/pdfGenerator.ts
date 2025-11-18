@@ -77,11 +77,30 @@ export function generateBriefPDF(data: BriefData) {
   const contentWidth = pageWidth - 2 * margin;
   const lineHeight = 7;
 
+  // Load logo image
+  const logoImg = new Image();
+  logoImg.src = '/Sherbet Blue Logo.png';
+  
+  // Helper function to add logo to current page
+  const addLogo = () => {
+    try {
+      // Add logo at top right (small size: 30mm wide)
+      const logoWidth = 30;
+      const logoHeight = 10; // Approximate aspect ratio
+      const logoX = pageWidth - margin - logoWidth;
+      const logoY = 10;
+      doc.addImage(logoImg, 'PNG', logoX, logoY, logoWidth, logoHeight);
+    } catch (error) {
+      console.error('Error adding logo to PDF:', error);
+    }
+  };
+
   // Helper functions
   const checkPageBreak = () => {
     if (yPos > 270) {
       doc.addPage();
       yPos = 20;
+      addLogo(); // Add logo to new page
     }
   };
 
@@ -128,6 +147,9 @@ export function generateBriefPDF(data: BriefData) {
     });
   };
 
+  // Add logo to first page
+  addLogo();
+  
   // Header
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
