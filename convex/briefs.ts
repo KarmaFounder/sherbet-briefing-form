@@ -1,9 +1,6 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { extractJobIdFromEmail, buildBriefSummary, createMondayUpdate, createOutOfScopeNotification } from "./mondayHelpers";
-
-// Type declaration for process.env in Convex runtime
-declare const process: { env: Record<string, string | undefined> };
+import { internal } from "./_generated/api";
 
 export const submitBrief = mutation({
   args: {
@@ -109,41 +106,12 @@ export const submitBrief = mutation({
     // Insert brief into database (without pdf_base64)
     const id = await ctx.db.insert("briefs", briefData);
 
-    // Monday.com integration
-    try {
-      const mondayApiKey = process.env.MONDAY_API_TOKEN;
-      
-      if (mondayApiKey && args.job_bag_email) {
-        // Extract job ID from email
-        const jobId = extractJobIdFromEmail(args.job_bag_email);
-        
-        if (jobId) {
-          console.log(`[Monday] Posting update to job ${jobId}`);
-          
-          // Create brief summary update with PDF attachment
-          const briefSummary = buildBriefSummary(args);
-          await createMondayUpdate(mondayApiKey, jobId, briefSummary, pdf_base64);
-          
-          // If Out of Scope, create second update with @mentions
-          if (args.billing_type === "OutOfScope") {
-            console.log(`[Monday] Creating Out of Scope notification for job ${jobId}`);
-            await createOutOfScopeNotification(
-              mondayApiKey,
-              jobId,
-              args.campaign_name,
-              args.user_name
-            );
-          }
-        } else {
-          console.log(`[Monday] Could not extract job ID from email: ${args.job_bag_email}`);
-        }
-      } else {
-        console.log("[Monday] API key or job bag email not provided");
-      }
-    } catch (error) {
-      // Log error but don't fail the submission
-      console.error("[Monday] Error posting update:", error);
-    }
+    // Monday.com integration - schedule action to run asynchronously
+    // This doesn't block the mutation from completing
+    ctx.scheduler.runAfter(0, internal.mondayActions.postBriefToMonday, {
+      briefData: briefData,
+      pdfBase64: pdf_base64,
+    });
 
     return id;
   },

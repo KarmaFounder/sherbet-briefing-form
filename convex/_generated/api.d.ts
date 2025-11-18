@@ -10,6 +10,7 @@
 
 import type * as admin from "../admin.js";
 import type * as briefs from "../briefs.js";
+import type * as mondayActions from "../mondayActions.js";
 import type * as mondayHelpers from "../mondayHelpers.js";
 
 import type {
@@ -21,6 +22,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   briefs: typeof briefs;
+  mondayActions: typeof mondayActions;
   mondayHelpers: typeof mondayHelpers;
 }>;
 
