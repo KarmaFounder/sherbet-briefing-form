@@ -1,0 +1,648 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format, isAfter, parseISO } from "date-fns";
+import { toast } from "sonner";
+import { api } from "../../convex/_generated/api";
+import { useMutation } from "convex/react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Label } from "./ui/label";
+import { Checkbox } from "./ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
+import { Calendar } from "./ui/calendar";
+import { Form, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
+import { Alert } from "./ui/alert";
+import { cn } from "../lib/utils";
+
+const INTERNAL_USERS = [
+  { name: "Raffaele Mc Creadie", email: "raffaele@example.com", phone: "+27111" },
+  { name: "Lara Mc Creadie", email: "lara@example.com", phone: "+27112" },
+  { name: "Inge Liebenberg", email: "inge@example.com", phone: "+27113" },
+  { name: "Danielle Piek", email: "danielle@example.com", phone: "+27114" },
+  { name: "Danica Ravic", email: "danica@example.com", phone: "+27115" },
+  { name: "Petronella Mphahlele", email: "petronella@example.com", phone: "+27116" },
+  { name: "Silindile Dlamini", email: "silindile@example.com", phone: "+27117" },
+  { name: "Sammie Lee Rice", email: "sammie@example.com", phone: "+27118" },
+  { name: "Emma Ghirlada", email: "emma@example.com", phone: "+27119" },
+  { name: "Christine Chivers", email: "christine@example.com", phone: "+27120" },
+  { name: "Ayushie Atchannah", email: "ayushie@example.com", phone: "+27121" },
+  { name: "Nakai Williams", email: "nakai@example.com", phone: "+27122" },
+  { name: "Elton Matanda", email: "elton@example.com", phone: "+27123" },
+  { name: "Lesedi Gwebu", email: "lesedi@example.com", phone: "+27124" },
+] as const;
+
+const CATEGORY_OPTIONS = [
+  "Strategy",
+  "Brand development",
+  "TV",
+  "Radio",
+  "Billboard",
+  "Print",
+  "Brand Video",
+  "Photography",
+  "PR",
+  "Influencer",
+  "Activation",
+  "Digital",
+  "Application Build",
+  "Website",
+  "Social Media",
+  "Other",
+] as const;
+
+// Stub option lists (expand these to match your full spec)
+const STRATEGY_OPTIONS = ["Campaign strategy", "Content strategy", "Digital strategy"];
+const BRAND_DEV_OPTIONS = ["CI development", "Logo refresh", "Tone of voice"];
+const TV_DURATIONS = ["10s", "15s", "20s", "30s", "45s", "60s"];
+const TV_DELIVERABLES = ["TVC concept", "Scriptwriting", "Storyboard"];
+
+const isoDateString = z.string().min(1, "Required");
+
+const briefSchema = z
+  .object({
+    user_name: z.string().min(1, "Required"),
+    client_name: z.string().min(1, "Required"),
+    brand_name: z.string().min(1, "Required"),
+    campaign_name: z.string().min(1, "Required"),
+    campaign_summary: z.string().min(1, "Required"),
+    requested_by: z.string().min(1, "Required"),
+    job_bag_email: z.string().email("Invalid email"),
+    start_date: isoDateString,
+    end_date: isoDateString,
+    priority: z.enum(["High", "Medium", "Low"]),
+    budget: z.string().min(1, "Required"),
+    categories: z.array(z.string()).min(1, "Select at least one category"),
+
+    strategy_options: z.array(z.string()).optional(),
+    brand_dev_options: z.array(z.string()).optional(),
+    tv_durations: z.array(z.string()).optional(),
+    tv_deliverables: z.array(z.string()).optional(),
+    tv_details: z.string().optional(),
+
+    social_media_items: z
+      .array(
+        z.object({
+          platform: z.string(),
+          format: z.string(),
+          size: z.string(),
+          quantity: z.number().min(1),
+        }),
+      )
+      .optional(),
+
+    has_assets: z.boolean(),
+    asset_link: z.string().optional(),
+    other_requirements: z.string().optional(),
+    references: z.string().min(1, "Required"),
+    kickstart_date: isoDateString,
+    first_review_date: isoDateString,
+    sign_off_date: isoDateString,
+    billing_type: z.enum(["Retainer", "OutOfScope"]),
+  })
+  .superRefine((values, ctx) => {
+    const start = parseISO(values.start_date);
+    const end = parseISO(values.end_date);
+    if (!isAfter(end, start) && end.getTime() !== start.getTime()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["end_date"], message: "End must be on/after start" });
+    }
+    const kickstart = parseISO(values.kickstart_date);
+    const firstReview = parseISO(values.first_review_date);
+    const signoff = parseISO(values.sign_off_date);
+    if (!isAfter(firstReview, kickstart) && firstReview.getTime() !== kickstart.getTime()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["first_review_date"], message: "First review must be on/after kickstart" });
+    }
+    if (!isAfter(signoff, firstReview) && signoff.getTime() !== firstReview.getTime()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sign_off_date"], message: "Sign-off must be on/after first review" });
+    }
+    if (values.has_assets && !values.asset_link) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["asset_link"], message: "Asset link required" });
+    }
+  });
+
+type BriefFormValues = z.infer<typeof briefSchema>;
+
+const DEFAULT_VALUES: BriefFormValues = {
+  user_name: "",
+  client_name: "",
+  brand_name: "",
+  campaign_name: "",
+  campaign_summary: "",
+  requested_by: "",
+  job_bag_email: "",
+  start_date: new Date().toISOString().slice(0, 10),
+  end_date: new Date().toISOString().slice(0, 10),
+  priority: "Medium",
+  budget: "",
+  categories: [],
+  strategy_options: [],
+  brand_dev_options: [],
+  tv_durations: [],
+  tv_deliverables: [],
+  tv_details: "",
+  social_media_items: [],
+  has_assets: false,
+  asset_link: "",
+  other_requirements: "",
+  references: "",
+  kickstart_date: new Date().toISOString().slice(0, 10),
+  first_review_date: new Date().toISOString().slice(0, 10),
+  sign_off_date: new Date().toISOString().slice(0, 10),
+  billing_type: "Retainer",
+};
+
+function toIso(date: Date | undefined): string {
+  if (!date) return "";
+  return date.toISOString();
+}
+function fromIsoToDate(value: string | undefined): Date | undefined {
+  if (!value) return undefined;
+  try {
+    return parseISO(value);
+  } catch {
+    return undefined;
+  }
+}
+
+export function CampaignBriefForm() {
+  const submitBrief = useMutation(api.briefs.submitBrief);
+  const form = useForm<BriefFormValues>({
+    resolver: zodResolver(briefSchema) as any,
+    defaultValues: DEFAULT_VALUES,
+    mode: "onBlur",
+  });
+
+  const watchCategories = form.watch("categories");
+  const watchUserName = form.watch("user_name");
+  const selectedUser = INTERNAL_USERS.find((u) => u.name === watchUserName);
+
+  const [socialRows, setSocialRows] = useState<
+    Array<{ platform: string; format: string; size: string; quantity: number }>
+  >([]);
+
+  const onSubmit = async (values: BriefFormValues) => {
+    try {
+      const userMeta = INTERNAL_USERS.find((u) => u.name === values.user_name);
+      await submitBrief({
+        user_name: values.user_name,
+        user_email: userMeta?.email,
+        user_phone: userMeta?.phone,
+        client_name: values.client_name,
+        brand_name: values.brand_name,
+        campaign_name: values.campaign_name,
+        campaign_summary: values.campaign_summary,
+        requested_by: values.requested_by,
+        job_bag_email: values.job_bag_email,
+        start_date: values.start_date,
+        end_date: values.end_date,
+        priority: values.priority,
+        budget: Number(values.budget.replace(/[^0-9.]/g, "")) || 0,
+        categories: values.categories,
+        strategy_options: values.strategy_options,
+        brand_dev_options: values.brand_dev_options,
+        tv_durations: values.tv_durations,
+        tv_deliverables: values.tv_deliverables,
+        tv_details: values.tv_details,
+        social_media_items: socialRows.length > 0 ? socialRows : undefined,
+        has_assets: values.has_assets,
+        asset_link: values.has_assets ? values.asset_link : undefined,
+        other_requirements: values.other_requirements,
+        references: values.references,
+        kickstart_date: values.kickstart_date,
+        first_review_date: values.first_review_date,
+        sign_off_date: values.sign_off_date,
+        billing_type: values.billing_type,
+      });
+      toast.success("Brief submitted");
+      form.reset(DEFAULT_VALUES);
+      setSocialRows([]);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to submit brief");
+    }
+  };
+
+  const billingType = form.watch("billing_type");
+  const hasAssets = form.watch("has_assets");
+
+  return (
+    <Form {...form}>
+      <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+        {/* Section A */}
+        <section className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
+          <h2 className="text-base font-semibold">Section A – Overview</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="user_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Your name</FormLabel>
+                  <Select onValueChange={(value) => field.onChange(value)} value={field.value}>
+                    <SelectTrigger><SelectValue placeholder="Select your name" /></SelectTrigger>
+                    <SelectContent>
+                      {INTERNAL_USERS.map((user) => (
+                        <SelectItem key={user.name} value={user.name}>{user.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {selectedUser && (
+              <>
+                <div className="space-y-1">
+                  <Label className="text-sm">Email</Label>
+                  <Input value={selectedUser.email} readOnly className="bg-muted" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm">Phone</Label>
+                  <Input value={selectedUser.phone} readOnly className="bg-muted" />
+                </div>
+              </>
+            )}
+            <FormField control={form.control} name="client_name" render={({ field }) => (
+              <FormItem><FormLabel>Client</FormLabel><Input placeholder="Client name" {...field} /><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="brand_name" render={({ field }) => (
+              <FormItem><FormLabel>Brand</FormLabel><Input placeholder="Brand name" {...field} /><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="campaign_name" render={({ field }) => (
+              <FormItem><FormLabel>Campaign Name</FormLabel><Input placeholder="Campaign name" {...field} /><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="requested_by" render={({ field }) => (
+              <FormItem><FormLabel>Requested by</FormLabel><Input placeholder="Client contact" {...field} /><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="job_bag_email" render={({ field }) => (
+              <FormItem><FormLabel>Job Bag Update Email</FormLabel><Input type="email" placeholder="name@client.com" {...field} /><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="start_date" render={({ field }) => (
+              <FormItem><FormLabel>Campaign Start</FormLabel>
+                <Popover><PopoverTrigger asChild>
+                  <Button type="button" variant="outline" className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                    {field.value ? format(fromIsoToDate(field.value) ?? new Date(), "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={fromIsoToDate(field.value)} onSelect={(date) => field.onChange(toIso(date))} />
+                </PopoverContent>
+                </Popover><FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="end_date" render={({ field }) => (
+              <FormItem><FormLabel>Campaign End</FormLabel>
+                <Popover><PopoverTrigger asChild>
+                  <Button type="button" variant="outline" className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                    {field.value ? format(fromIsoToDate(field.value) ?? new Date(), "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={fromIsoToDate(field.value)} onSelect={(date) => field.onChange(toIso(date))} />
+                </PopoverContent>
+                </Popover><FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="priority" render={({ field }) => (
+              <FormItem><FormLabel>Priority</FormLabel>
+                <Select value={field.value} onValueChange={(value) => field.onChange(value)}>
+                  <SelectTrigger><SelectValue placeholder="Select priority" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                  </SelectContent>
+                </Select><FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="budget" render={({ field }) => (
+              <FormItem><FormLabel>Budget</FormLabel><Input placeholder="e.g. R250 000" {...field} onChange={(e) => field.onChange(e.target.value)} /><FormMessage /></FormItem>
+            )} />
+          </div>
+          <FormField control={form.control} name="campaign_summary" render={({ field }) => (
+            <FormItem><FormLabel>Campaign Summary</FormLabel>
+              <Textarea placeholder="High-level overview" rows={4} {...field} /><FormMessage />
+            </FormItem>
+          )} />
+        </section>
+
+        {/* Section B */}
+        <section className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
+          <h2 className="text-base font-semibold">Section B – Category Requirement</h2>
+          <FormField control={form.control} name="categories" render={() => (
+            <FormItem>
+              <FormLabel>This campaign requires</FormLabel>
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                {CATEGORY_OPTIONS.map((category) => (
+                  <Label key={category} className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                    <Checkbox
+                      checked={watchCategories.includes(category)}
+                      onCheckedChange={(checked) => {
+                        const current = new Set(watchCategories);
+                        if (checked) current.add(category); else current.delete(category);
+                        form.setValue("categories", Array.from(current), { shouldValidate: true });
+                      }}
+                    />
+                    <span>{category}</span>
+                  </Label>
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )} />
+        </section>
+
+        {/* Section C – dynamic per category (stub patterns) */}
+        {watchCategories.length > 0 && (
+          <section className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
+            <h2 className="text-base font-semibold">Section C – Brief per category selected</h2>
+
+            {watchCategories.includes("Strategy") && (
+              <div className="space-y-3 rounded-md border border-dashed p-3">
+                <h3 className="text-sm font-semibold">Strategy Options</h3>
+                <FormField control={form.control} name="strategy_options" render={({ field }) => (
+                  <FormItem>
+                    <div className="grid grid-cols-2 gap-2">
+                      {STRATEGY_OPTIONS.map((opt) => (
+                        <Label key={opt} className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                          <Checkbox
+                            checked={field.value?.includes(opt)}
+                            onCheckedChange={(checked) => {
+                              const current = new Set(field.value || []);
+                              if (checked) current.add(opt); else current.delete(opt);
+                              form.setValue("strategy_options", Array.from(current) as string[]);
+                            }}
+                          />
+                          <span>{opt}</span>
+                        </Label>
+                      ))}
+                    </div>
+                  </FormItem>
+                )} />
+              </div>
+            )}
+
+            {watchCategories.includes("Brand development") && (
+              <div className="space-y-3 rounded-md border border-dashed p-3">
+                <h3 className="text-sm font-semibold">Brand Development Options</h3>
+                <FormField control={form.control} name="brand_dev_options" render={({ field }) => (
+                  <FormItem>
+                    <div className="grid grid-cols-2 gap-2">
+                      {BRAND_DEV_OPTIONS.map((opt) => (
+                        <Label key={opt} className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                          <Checkbox
+                            checked={field.value?.includes(opt)}
+                            onCheckedChange={(checked) => {
+                              const current = new Set(field.value || []);
+                              if (checked) current.add(opt); else current.delete(opt);
+                              form.setValue("brand_dev_options", Array.from(current) as string[]);
+                            }}
+                          />
+                          <span>{opt}</span>
+                        </Label>
+                      ))}
+                    </div>
+                  </FormItem>
+                )} />
+              </div>
+            )}
+
+            {watchCategories.includes("TV") && (
+              <div className="space-y-3 rounded-md border border-dashed p-3">
+                <h3 className="text-sm font-semibold">TV Requirements</h3>
+                <FormField control={form.control} name="tv_durations" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Durations</FormLabel>
+                    <div className="grid grid-cols-3 gap-2">
+                      {TV_DURATIONS.map((d) => (
+                        <Label key={d} className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                          <Checkbox
+                            checked={field.value?.includes(d)}
+                            onCheckedChange={(checked) => {
+                              const current = new Set(field.value || []);
+                              if (checked) current.add(d); else current.delete(d);
+                              form.setValue("tv_durations", Array.from(current) as string[]);
+                            }}
+                          />
+                          <span>{d}</span>
+                        </Label>
+                      ))}
+                    </div>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="tv_deliverables" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Deliverables</FormLabel>
+                    <div className="grid grid-cols-2 gap-2">
+                      {TV_DELIVERABLES.map((d) => (
+                        <Label key={d} className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                          <Checkbox
+                            checked={field.value?.includes(d)}
+                            onCheckedChange={(checked) => {
+                              const current = new Set(field.value || []);
+                              if (checked) current.add(d); else current.delete(d);
+                              form.setValue("tv_deliverables", Array.from(current) as string[]);
+                            }}
+                          />
+                          <span>{d}</span>
+                        </Label>
+                      ))}
+                    </div>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="tv_details" render={({ field }) => (
+                  <FormItem><FormLabel>Tell us more about your TV requirements</FormLabel>
+                    <Textarea rows={3} {...field} /><FormMessage />
+                  </FormItem>
+                )} />
+              </div>
+            )}
+
+            {/* Social Media advanced rows */}
+            {watchCategories.includes("Social Media") && (
+              <div className="space-y-3 rounded-md border border-dashed p-3">
+                <h3 className="text-sm font-semibold">Social Media Items</h3>
+                {socialRows.map((row, idx) => (
+                  <div key={idx} className="grid grid-cols-[2fr,2fr,2fr,1fr,auto] gap-2 items-end">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Platform</Label>
+                      <Select value={row.platform} onValueChange={(v) => {
+                        const updated = [...socialRows];
+                        updated[idx].platform = v;
+                        setSocialRows(updated);
+                      }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Instagram">Instagram</SelectItem>
+                          <SelectItem value="Facebook">Facebook</SelectItem>
+                          <SelectItem value="TikTok">TikTok</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Format</Label>
+                      <Select value={row.format} onValueChange={(v) => {
+                        const updated = [...socialRows];
+                        updated[idx].format = v;
+                        setSocialRows(updated);
+                      }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Static">Static</SelectItem>
+                          <SelectItem value="Carousel">Carousel</SelectItem>
+                          <SelectItem value="Reel">Reel</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Size</Label>
+                      <Select value={row.size} onValueChange={(v) => {
+                        const updated = [...socialRows];
+                        updated[idx].size = v;
+                        setSocialRows(updated);
+                      }}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1080x1080">1080x1080</SelectItem>
+                          <SelectItem value="1080x1920">1080x1920</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Qty</Label>
+                      <Input type="number" value={row.quantity} onChange={(e) => {
+                        const updated = [...socialRows];
+                        updated[idx].quantity = Number(e.target.value);
+                        setSocialRows(updated);
+                      }} />
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={() => {
+                      setSocialRows(socialRows.filter((_, i) => i !== idx));
+                    }}>Remove</Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setSocialRows([...socialRows, { platform: "Instagram", format: "Static", size: "1080x1080", quantity: 1 }]);
+                }}>Add Social Media Item</Button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Section D */}
+        <section className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
+          <h2 className="text-base font-semibold">Section D – Additional Information</h2>
+          <FormField control={form.control} name="other_requirements" render={({ field }) => (
+            <FormItem><FormLabel>Any other requirements...</FormLabel>
+              <Textarea rows={3} {...field} /><FormMessage />
+            </FormItem>
+          )} />
+          <div className="grid gap-4 md:grid-cols-[1.2fr,1fr]">
+            <div className="space-y-4">
+              <FormField control={form.control} name="has_assets" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Are there assets from the client?</FormLabel>
+                  <div className="flex gap-4">
+                    <Label className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                      <Checkbox checked={field.value === true} onCheckedChange={() => field.onChange(true)} />
+                      <span>Yes</span>
+                    </Label>
+                    <Label className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                      <Checkbox checked={field.value === false} onCheckedChange={() => field.onChange(false)} />
+                      <span>No</span>
+                    </Label>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              {hasAssets && (
+                <FormField control={form.control} name="asset_link" render={({ field }) => (
+                  <FormItem><FormLabel>Paste Link (Asset Link)</FormLabel>
+                    <Input type="url" placeholder="https://drive.google.com/..." {...field} /><FormMessage />
+                  </FormItem>
+                )} />
+              )}
+              <FormField control={form.control} name="references" render={({ field }) => (
+                <FormItem><FormLabel>References we must consider (NB)</FormLabel>
+                  <Textarea placeholder="Paste links for review" rows={3} {...field} /><FormMessage />
+                </FormItem>
+              )} />
+            </div>
+            <div className="space-y-3 rounded-md border p-3">
+              <h3 className="text-sm font-semibold">Timeline</h3>
+              <div className="space-y-3">
+                <FormField control={form.control} name="kickstart_date" render={({ field }) => (
+                  <FormItem><FormLabel>Kickstart scheduled for</FormLabel>
+                    <Popover><PopoverTrigger asChild>
+                      <Button type="button" variant="outline" className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                        {field.value ? format(fromIsoToDate(field.value) ?? new Date(), "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={fromIsoToDate(field.value)} onSelect={(date) => field.onChange(toIso(date))} />
+                    </PopoverContent>
+                    </Popover><FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="first_review_date" render={({ field }) => (
+                  <FormItem><FormLabel>First review</FormLabel>
+                    <Popover><PopoverTrigger asChild>
+                      <Button type="button" variant="outline" className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                        {field.value ? format(fromIsoToDate(field.value) ?? new Date(), "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={fromIsoToDate(field.value)} onSelect={(date) => field.onChange(toIso(date))} />
+                    </PopoverContent>
+                    </Popover><FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="sign_off_date" render={({ field }) => (
+                  <FormItem><FormLabel>Deadline for sign-off</FormLabel>
+                    <Popover><PopoverTrigger asChild>
+                      <Button type="button" variant="outline" className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                        {field.value ? format(fromIsoToDate(field.value) ?? new Date(), "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={fromIsoToDate(field.value)} onSelect={(date) => field.onChange(toIso(date))} />
+                    </PopoverContent>
+                    </Popover><FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="billing_type" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>This project is billed under</FormLabel>
+                    <div className="flex gap-4">
+                      <Label className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                        <Checkbox checked={field.value === "Retainer"} onCheckedChange={() => field.onChange("Retainer")} />
+                        <span>Retainer</span>
+                      </Label>
+                      <Label className="flex cursor-pointer items-center gap-2 text-sm font-normal">
+                        <Checkbox checked={field.value === "OutOfScope"} onCheckedChange={() => field.onChange("OutOfScope")} />
+                        <span>Out Of Scope</span>
+                      </Label>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                {billingType === "OutOfScope" && (
+                  <Alert variant="warning" className="mt-2">Management will be notified via email.</Alert>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? "Submitting..." : "Submit Brief"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
