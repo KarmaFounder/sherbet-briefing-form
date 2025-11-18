@@ -1,8 +1,19 @@
 import { CampaignBriefForm } from "./components/CampaignBriefForm";
+import { AdminDashboard } from "./components/AdminDashboard";
 import { useState } from "react";
 
 function App() {
   const [demoTrigger, setDemoTrigger] = useState(0);
+  const [showAdmin, setShowAdmin] = useState(false);
+  
+  const handleAdminClick = () => {
+    const password = prompt("Enter admin password:");
+    if (password === "admin1234") {
+      setShowAdmin(true);
+    } else if (password !== null) {
+      alert("Incorrect password");
+    }
+  };
   
   return (
     <div className="container-page">
@@ -10,12 +21,20 @@ function App() {
         <img src="/Sherbet Blue Logo.png" alt="Sherbet" className="h-16" />
       </div>
       <header className="space-y-1 relative">
-        <button
-          onClick={() => setDemoTrigger(prev => prev + 1)}
-          className="absolute right-0 top-0 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          Load Demo
-        </button>
+        <div className="absolute right-0 top-0 flex gap-2">
+          <button
+            onClick={() => setDemoTrigger(prev => prev + 1)}
+            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+          >
+            Load Demo
+          </button>
+          <button
+            onClick={handleAdminClick}
+            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+          >
+            Admin
+          </button>
+        </div>
         <h1 className="text-2xl font-semibold tracking-tight">
           New Campaign Brief
         </h1>
@@ -26,6 +45,7 @@ function App() {
       <main>
         <CampaignBriefForm demoTrigger={demoTrigger} />
       </main>
+      {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
     </div>
   );
 }
