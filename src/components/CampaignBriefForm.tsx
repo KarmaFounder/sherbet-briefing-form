@@ -362,6 +362,11 @@ export function CampaignBriefForm() {
   return (
     <Form {...form}>
       <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+        {/* Logo */}
+        <div className="flex justify-center py-6">
+          <img src="/Sherbet Blue Logo.png" alt="Sherbet" className="h-16" />
+        </div>
+        
         {/* Section A */}
         <section className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
           <h2 className="text-base font-semibold">Section A – Overview</h2>
