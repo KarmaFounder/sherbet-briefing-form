@@ -20,20 +20,20 @@ import { cn } from "../lib/utils";
 import * as FormOptions from "../lib/formOptions";
 
 const INTERNAL_USERS = [
-  { name: "Raffaele Mc Creadie", email: "raffaele@sherbet.co.za", phone: "+27 82 456 7890" },
-  { name: "Lara Mc Creadie", email: "lara@sherbet.co.za", phone: "+27 82 456 7891" },
-  { name: "Inge Liebenberg", email: "inge@sherbet.co.za", phone: "+27 82 456 7892" },
-  { name: "Danielle Piek", email: "danielle@sherbet.co.za", phone: "+27 82 456 7893" },
-  { name: "Danica Ravic", email: "danica@sherbet.co.za", phone: "+27 82 456 7894" },
-  { name: "Petronella Mphahlele", email: "petronella@sherbet.co.za", phone: "+27 82 456 7895" },
-  { name: "Silindile Dlamini", email: "silindile@sherbet.co.za", phone: "+27 82 456 7896" },
-  { name: "Sammie Lee Rice", email: "sammie@sherbet.co.za", phone: "+27 82 456 7897" },
-  { name: "Emma Ghirlada", email: "emma@sherbet.co.za", phone: "+27 82 456 7898" },
-  { name: "Christine Chivers", email: "christine@sherbet.co.za", phone: "+27 82 456 7899" },
-  { name: "Ayushie Atchannah", email: "ayushie@sherbet.co.za", phone: "+27 82 456 7800" },
-  { name: "Nakai Williams", email: "nakai@sherbet.co.za", phone: "+27 82 456 7801" },
-  { name: "Elton Matanda", email: "elton@sherbet.co.za", phone: "+27 82 456 7802" },
-  { name: "Lesedi Gwebu", email: "lesedi@sherbet.co.za", phone: "+27 82 456 7803" },
+  { name: "Raffaele Mc Creadie", email: "raffaele@sherbet.com", phone: "+27 82 456 7890" },
+  { name: "Lara Mc Creadie", email: "lara@sherbet.com", phone: "+27 82 456 7891" },
+  { name: "Inge Liebenberg", email: "inge@sherbet.com", phone: "+27 82 456 7892" },
+  { name: "Danielle Piek", email: "danielle@sherbet.com", phone: "+27 82 456 7893" },
+  { name: "Danica Ravic", email: "danica@sherbet.com", phone: "+27 82 456 7894" },
+  { name: "Petronella Mphahlele", email: "petronella@sherbet.com", phone: "+27 82 456 7895" },
+  { name: "Silindile Dlamini", email: "silindile@sherbet.com", phone: "+27 82 456 7896" },
+  { name: "Sammie Lee Rice", email: "sammie@sherbet.com", phone: "+27 82 456 7897" },
+  { name: "Emma Ghirlada", email: "emma@sherbet.com", phone: "+27 82 456 7898" },
+  { name: "Christine Chivers", email: "christine@sherbet.com", phone: "+27 82 456 7899" },
+  { name: "Ayushie Atchannah", email: "ayushie@sherbet.com", phone: "+27 82 456 7800" },
+  { name: "Nakai Williams", email: "nakai@sherbet.com", phone: "+27 82 456 7801" },
+  { name: "Elton Matanda", email: "elton@sherbet.com", phone: "+27 82 456 7802" },
+  { name: "Lesedi Gwebu", email: "lesedi@sherbet.com", phone: "+27 82 456 7803" },
 ] as const;
 
 const CATEGORY_OPTIONS = [
@@ -362,11 +362,6 @@ export function CampaignBriefForm() {
   return (
     <Form {...form}>
       <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)} noValidate>
-        {/* Logo */}
-        <div className="flex justify-center py-6">
-          <img src="/Sherbet Blue Logo.png" alt="Sherbet" className="h-16" />
-        </div>
-        
         {/* Section A */}
         <section className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
           <h2 className="text-base font-semibold">Section A – Overview</h2>
