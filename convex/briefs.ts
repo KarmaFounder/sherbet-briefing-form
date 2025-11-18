@@ -23,7 +23,9 @@ export const submitBrief = mutation({
     categories: v.array(v.string()),
 
     strategy_options: v.optional(v.array(v.string())),
+    strategy_details: v.optional(v.string()),
     brand_dev_options: v.optional(v.array(v.string())),
+    brand_dev_details: v.optional(v.string()),
 
     tv_durations: v.optional(v.array(v.string())),
     tv_deliverables: v.optional(v.array(v.string())),

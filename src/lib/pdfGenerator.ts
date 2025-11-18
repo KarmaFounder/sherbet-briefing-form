@@ -16,7 +16,9 @@ interface BriefData {
   budget: string;
   categories: string[];
   strategy_options?: string[];
+  strategy_details?: string;
   brand_dev_options?: string[];
+  brand_dev_details?: string;
   tv_durations?: string[];
   tv_deliverables?: string[];
   tv_details?: string;
@@ -163,11 +165,13 @@ export function generateBriefPDF(data: BriefData) {
   if (data.strategy_options && data.strategy_options.length > 0) {
     addSectionHeader("Strategy");
     addList("Options", data.strategy_options);
+    addField("Details", data.strategy_details);
   }
 
   if (data.brand_dev_options && data.brand_dev_options.length > 0) {
     addSectionHeader("Brand Development");
     addList("Options", data.brand_dev_options);
+    addField("Details", data.brand_dev_details);
   }
 
   if (data.tv_durations && data.tv_durations.length > 0) {

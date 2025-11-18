@@ -74,7 +74,9 @@ const briefSchema = z
     categories: z.array(z.string()).min(1, "Select at least one category"),
 
     strategy_options: z.array(z.string()).optional(),
+    strategy_details: z.string().optional(),
     brand_dev_options: z.array(z.string()).optional(),
+    brand_dev_details: z.string().optional(),
     tv_durations: z.array(z.string()).optional(),
     tv_deliverables: z.array(z.string()).optional(),
     tv_details: z.string().optional(),
@@ -165,7 +167,9 @@ const DEFAULT_VALUES: BriefFormValues = {
   budget: "",
   categories: [],
   strategy_options: [],
+  strategy_details: "",
   brand_dev_options: [],
+  brand_dev_details: "",
   tv_durations: [],
   tv_deliverables: [],
   tv_details: "",
@@ -254,6 +258,7 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
       budget: "R850,000",
       categories: ["Strategy", "Brand Video", "Social Media", "Digital", "Influencer"],
       strategy_options: ["Campaign strategy", "Content strategy"],
+      strategy_details: "Develop integrated campaign strategy that positions Coca-Cola Zero as the beverage of choice for active, health-conscious Gen Z consumers. Content strategy to focus on authentic storytelling across paid, owned and earned channels.",
       brand_video_durations: ["15s", "30s", "60s"],
       brand_video_deliverables: ["Brand film", "Motion graphics", "Cutdowns", "Aspect ratios: 16:9 / 9:16 / 1:1"],
       brand_video_details: "Hero brand film showcasing active lifestyle, with cutdowns for various social platforms. Focus on vibrant summer aesthetics.",
@@ -345,7 +350,9 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
         budget: Number(values.budget.replace(/[^0-9.]/g, "")) || 0,
         categories: values.categories,
         strategy_options: values.strategy_options,
+        strategy_details: values.strategy_details,
         brand_dev_options: values.brand_dev_options,
+        brand_dev_details: values.brand_dev_details,
         tv_durations: values.tv_durations,
         tv_deliverables: values.tv_deliverables,
         tv_details: values.tv_details,
@@ -684,6 +691,17 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
               <div className="space-y-3 rounded-md border border-dashed p-3">
                 <h3 className="text-sm font-semibold">Strategy Options</h3>
                 {renderCheckboxArray("strategy_options", FormOptions.STRATEGY_OPTIONS, 2)}
+                <FormField
+                  control={form.control}
+                  name="strategy_details"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tell us more about your Strategy requirements</FormLabel>
+                      <Textarea rows={3} {...field} />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             )}
 
@@ -691,6 +709,17 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
               <div className="space-y-3 rounded-md border border-dashed p-3">
                 <h3 className="text-sm font-semibold">Brand Development Options</h3>
                 {renderCheckboxArray("brand_dev_options", FormOptions.BRAND_DEV_OPTIONS, 2)}
+                <FormField
+                  control={form.control}
+                  name="brand_dev_details"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tell us more about your Brand Development requirements</FormLabel>
+                      <Textarea rows={3} {...field} />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             )}
 
