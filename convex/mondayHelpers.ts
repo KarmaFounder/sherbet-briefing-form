@@ -137,30 +137,22 @@ export function buildBriefSummary(briefData: any, pdfUrl?: string | null): strin
   const lines = [
     `📋 NEW CAMPAIGN BRIEF`,
     ``,
-    `Campaign: ${briefData.campaign_name}`,
-    `Client: ${briefData.client_name}`,
-    `Brand: ${briefData.brand_name}`,
-    `Submitted by: ${briefData.user_name}`,
-    ``,
-    `Priority: ${briefData.priority}`,
-    briefData.budget ? `Budget: R${briefData.budget.toLocaleString()}` : `Budget: TBD`,
+    `${briefData.campaign_name}`,
+    `Client: ${briefData.client_name} | Brand: ${briefData.brand_name}`,
+    `By: ${briefData.user_name} | Priority: ${briefData.priority}`,
+    briefData.budget ? `Budget: R${briefData.budget.toLocaleString()}` : ``,
     ``,
     `Categories: ${briefData.categories.join(", ")}`,
     ``,
-    `Campaign Summary:`,
     briefData.campaign_summary,
     ``,
-    `Timeline:`,
-    `• Kickstart: ${briefData.kickstart_date}`,
-    `• First Review: ${briefData.first_review_date}`,
-    `• Sign-off: ${briefData.sign_off_date}`,
-    ``,
+    `Timeline: ${briefData.kickstart_date} → ${briefData.first_review_date} → ${briefData.sign_off_date}`,
     `Billing: ${briefData.billing_type}`,
   ];
 
   if (pdfUrl) {
     lines.push(``);
-    lines.push(`📄 Download Full Brief PDF: ${pdfUrl}`);
+    lines.push(`📄 DOWNLOAD BRIEF: ${pdfUrl}`);
   }
 
   return lines.join("\n");
