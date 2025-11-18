@@ -17,23 +17,22 @@ import { Calendar } from "./ui/calendar";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Alert } from "./ui/alert";
 import { cn } from "../lib/utils";
-import * as FormOptions from "../lib/formOptions";
 
 const INTERNAL_USERS = [
-  { name: "Raffaele Mc Creadie", email: "raffaele@sherbet.co.za", phone: "+27 82 456 7890" },
-  { name: "Lara Mc Creadie", email: "lara@sherbet.co.za", phone: "+27 82 456 7891" },
-  { name: "Inge Liebenberg", email: "inge@sherbet.co.za", phone: "+27 82 456 7892" },
-  { name: "Danielle Piek", email: "danielle@sherbet.co.za", phone: "+27 82 456 7893" },
-  { name: "Danica Ravic", email: "danica@sherbet.co.za", phone: "+27 82 456 7894" },
-  { name: "Petronella Mphahlele", email: "petronella@sherbet.co.za", phone: "+27 82 456 7895" },
-  { name: "Silindile Dlamini", email: "silindile@sherbet.co.za", phone: "+27 82 456 7896" },
-  { name: "Sammie Lee Rice", email: "sammie@sherbet.co.za", phone: "+27 82 456 7897" },
-  { name: "Emma Ghirlada", email: "emma@sherbet.co.za", phone: "+27 82 456 7898" },
-  { name: "Christine Chivers", email: "christine@sherbet.co.za", phone: "+27 82 456 7899" },
-  { name: "Ayushie Atchannah", email: "ayushie@sherbet.co.za", phone: "+27 82 456 7800" },
-  { name: "Nakai Williams", email: "nakai@sherbet.co.za", phone: "+27 82 456 7801" },
-  { name: "Elton Matanda", email: "elton@sherbet.co.za", phone: "+27 82 456 7802" },
-  { name: "Lesedi Gwebu", email: "lesedi@sherbet.co.za", phone: "+27 82 456 7803" },
+  { name: "Raffaele Mc Creadie", email: "raffaele@example.com", phone: "+27111" },
+  { name: "Lara Mc Creadie", email: "lara@example.com", phone: "+27112" },
+  { name: "Inge Liebenberg", email: "inge@example.com", phone: "+27113" },
+  { name: "Danielle Piek", email: "danielle@example.com", phone: "+27114" },
+  { name: "Danica Ravic", email: "danica@example.com", phone: "+27115" },
+  { name: "Petronella Mphahlele", email: "petronella@example.com", phone: "+27116" },
+  { name: "Silindile Dlamini", email: "silindile@example.com", phone: "+27117" },
+  { name: "Sammie Lee Rice", email: "sammie@example.com", phone: "+27118" },
+  { name: "Emma Ghirlada", email: "emma@example.com", phone: "+27119" },
+  { name: "Christine Chivers", email: "christine@example.com", phone: "+27120" },
+  { name: "Ayushie Atchannah", email: "ayushie@example.com", phone: "+27121" },
+  { name: "Nakai Williams", email: "nakai@example.com", phone: "+27122" },
+  { name: "Elton Matanda", email: "elton@example.com", phone: "+27123" },
+  { name: "Lesedi Gwebu", email: "lesedi@example.com", phone: "+27124" },
 ] as const;
 
 const CATEGORY_OPTIONS = [
@@ -54,6 +53,12 @@ const CATEGORY_OPTIONS = [
   "Social Media",
   "Other",
 ] as const;
+
+// Stub option lists (expand these to match your full spec)
+const STRATEGY_OPTIONS = ["Campaign strategy", "Content strategy", "Digital strategy"];
+const BRAND_DEV_OPTIONS = ["CI development", "Logo refresh", "Tone of voice"];
+const TV_DURATIONS = ["10s", "15s", "20s", "30s", "45s", "60s"];
+const TV_DELIVERABLES = ["TVC concept", "Scriptwriting", "Storyboard"];
 
 const isoDateString = z.string().min(1, "Required");
 
