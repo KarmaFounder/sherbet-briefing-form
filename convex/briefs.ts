@@ -111,7 +111,7 @@ export const submitBrief = mutation({
 
     // Monday.com integration
     try {
-      const mondayApiKey = process.env.MONDAY_API_KEY;
+      const mondayApiKey = process.env.MONDAY_API_TOKEN;
       
       if (mondayApiKey && args.job_bag_email) {
         // Extract job ID from email
