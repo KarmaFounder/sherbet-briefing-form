@@ -104,35 +104,38 @@ async function attachFileToUpdate(
   updateId: string,
   pdfBase64: string
 ): Promise<void> {
-  const mutation = `
-    mutation ($updateId: ID!, $file: File!) {
-      add_file_to_update (update_id: $updateId, file: $file) {
-        id
-      }
+  try {
+    // Convert base64 to blob
+    const byteCharacters = atob(pdfBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
-  `;
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
 
-  const variables = {
-    updateId,
-    file: pdfBase64,
-  };
+    // Create FormData with the file
+    const formData = new FormData();
+    formData.append('query', `mutation ($file: File!) { add_file_to_update (update_id: ${updateId}, file: $file) { id } }`);
+    formData.append('variables[file]', blob, 'campaign-brief.pdf');
 
-  const response = await fetch("https://api.monday.com/v2", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: apiKey,
-    },
-    body: JSON.stringify({
-      query: mutation,
-      variables,
-    }),
-  });
+    const response = await fetch("https://api.monday.com/v2", {
+      method: "POST",
+      headers: {
+        Authorization: apiKey,
+      },
+      body: formData,
+    });
 
-  const data = await response.json();
-  
-  if (data.errors) {
-    console.error("Failed to attach PDF to Monday update:", data.errors);
+    const data = await response.json();
+    
+    if (data.errors) {
+      console.error("Failed to attach PDF to Monday update:", data.errors);
+    } else {
+      console.log("PDF successfully attached to Monday update");
+    }
+  } catch (error) {
+    console.error("Error attaching PDF:", error);
   }
 }
 
