@@ -72,7 +72,7 @@ export default defineSchema({
     other_options: v.optional(v.array(v.string())),
     other_details: v.optional(v.string()),
 
-    // Social Media: array of items (platform/format/size/quantity)
+    // Social Media: array of items (platform/format/size/quantity/descriptions)
     social_media_items: v.optional(
       v.array(
         v.object({
@@ -80,6 +80,7 @@ export default defineSchema({
           format: v.string(),
           size: v.string(),
           quantity: v.number(),
+          descriptions: v.array(v.string()),
         }),
       ),
     ),

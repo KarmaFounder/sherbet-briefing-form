@@ -235,7 +235,7 @@ export function CampaignBriefForm() {
   const selectedUser = INTERNAL_USERS.find((u) => u.name === watchUserName);
 
   const [socialRows, setSocialRows] = useState<
-    Array<{ platform: string; format: string; size: string; quantity: number }>
+    Array<{ platform: string; format: string; size: string; quantity: number; descriptions: string[] }>
   >([]);
 
   const onSubmit = async (values: BriefFormValues) => {
@@ -888,100 +888,137 @@ export function CampaignBriefForm() {
                   const availableFormats = getAvailableFormats(row.platform);
                   const availableSizes = getAvailableSizes(row.platform, row.format);
                   return (
-                    <div key={idx} className="grid grid-cols-[2fr,2fr,2fr,1fr,auto] gap-2 items-end">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Platform</Label>
-                        <Select
-                          value={row.platform}
-                          onValueChange={(v) => {
-                            const updated = [...socialRows];
-                            updated[idx].platform = v;
-                            updated[idx].format = "";
-                            updated[idx].size = "";
-                            setSocialRows(updated);
+                    <div key={idx} className="space-y-3 rounded-md border border-gray-200 p-3 bg-gray-50">
+                      <div className="grid grid-cols-[2fr,2fr,2fr,1fr,auto] gap-2 items-end">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Platform</Label>
+                          <Select
+                            value={row.platform}
+                            onValueChange={(v) => {
+                              const updated = [...socialRows];
+                              updated[idx].platform = v;
+                              updated[idx].format = "";
+                              updated[idx].size = "";
+                              setSocialRows(updated);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {FormOptions.SOCIAL_MEDIA_PLATFORMS.map((p) => (
+                                <SelectItem key={p} value={p}>
+                                  {p}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Format</Label>
+                          <Select
+                            value={row.format}
+                            onValueChange={(v) => {
+                              const updated = [...socialRows];
+                              updated[idx].format = v;
+                              updated[idx].size = "";
+                              setSocialRows(updated);
+                            }}
+                            disabled={!row.platform}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select format" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableFormats.map((f) => (
+                                <SelectItem key={f} value={f}>
+                                  {f}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Size</Label>
+                          <Select
+                            value={row.size}
+                            onValueChange={(v) => {
+                              const updated = [...socialRows];
+                              updated[idx].size = v;
+                              setSocialRows(updated);
+                            }}
+                            disabled={!row.format}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select size" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableSizes.map((s) => (
+                                <SelectItem key={s} value={s}>
+                                  {s}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Qty</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={row.quantity}
+                            onChange={(e) => {
+                              const newQty = Math.max(1, Number(e.target.value));
+                              const updated = [...socialRows];
+                              updated[idx].quantity = newQty;
+                              // Adjust descriptions array length to match quantity
+                              const currentDescs = updated[idx].descriptions || [];
+                              if (newQty > currentDescs.length) {
+                                // Add empty strings for new items
+                                updated[idx].descriptions = [...currentDescs, ...Array(newQty - currentDescs.length).fill("")];
+                              } else {
+                                // Trim to new quantity
+                                updated[idx].descriptions = currentDescs.slice(0, newQty);
+                              }
+                              setSocialRows(updated);
+                            }}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSocialRows(socialRows.filter((_, i) => i !== idx));
                           }}
                         >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {FormOptions.SOCIAL_MEDIA_PLATFORMS.map((p) => (
-                              <SelectItem key={p} value={p}>
-                                {p}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          Remove
+                        </Button>
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Format</Label>
-                        <Select
-                          value={row.format}
-                          onValueChange={(v) => {
-                            const updated = [...socialRows];
-                            updated[idx].format = v;
-                            updated[idx].size = "";
-                            setSocialRows(updated);
-                          }}
-                          disabled={!row.platform}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select format" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableFormats.map((f) => (
-                              <SelectItem key={f} value={f}>
-                                {f}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Size</Label>
-                        <Select
-                          value={row.size}
-                          onValueChange={(v) => {
-                            const updated = [...socialRows];
-                            updated[idx].size = v;
-                            setSocialRows(updated);
-                          }}
-                          disabled={!row.format}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select size" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableSizes.map((s) => (
-                              <SelectItem key={s} value={s}>
-                                {s}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Qty</Label>
-                        <Input
-                          type="number"
-                          value={row.quantity}
-                          onChange={(e) => {
-                            const updated = [...socialRows];
-                            updated[idx].quantity = Number(e.target.value);
-                            setSocialRows(updated);
-                          }}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSocialRows(socialRows.filter((_, i) => i !== idx));
-                        }}
-                      >
-                        Remove
-                      </Button>
+                      
+                      {/* Individual brief descriptions for each quantity */}
+                      {row.quantity > 0 && (
+                        <div className="space-y-2 mt-3">
+                          <Label className="text-xs font-semibold">Brief for each item:</Label>
+                          {Array.from({ length: row.quantity }).map((_, descIdx) => (
+                            <div key={descIdx} className="space-y-1">
+                              <Label className="text-xs text-gray-600">Item {descIdx + 1} Description</Label>
+                              <Textarea
+                                rows={2}
+                                placeholder={`Brief/description for ${row.platform} ${row.format} item ${descIdx + 1}`}
+                                value={row.descriptions[descIdx] || ""}
+                                onChange={(e) => {
+                                  const updated = [...socialRows];
+                                  const descs = [...(updated[idx].descriptions || [])];
+                                  descs[descIdx] = e.target.value;
+                                  updated[idx].descriptions = descs;
+                                  setSocialRows(updated);
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -990,7 +1027,7 @@ export function CampaignBriefForm() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setSocialRows([...socialRows, { platform: "Instagram", format: "", size: "", quantity: 1 }]);
+                    setSocialRows([...socialRows, { platform: "Instagram", format: "", size: "", quantity: 1, descriptions: [""] }]);
                   }}
                 >
                   Add Social Media Item

@@ -78,6 +78,7 @@ export const submitBrief = mutation({
           format: v.string(),
           size: v.string(),
           quantity: v.number(),
+          descriptions: v.array(v.string()),
         }),
       ),
     ),
