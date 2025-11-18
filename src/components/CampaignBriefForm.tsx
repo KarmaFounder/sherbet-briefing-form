@@ -1143,6 +1143,44 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
                         </Button>
                       </div>
                       
+                      {/* Visual size preview */}
+                      {row.size && (() => {
+                        const sizeMatch = row.size.match(/(\d+)\s*[x×]\s*(\d+)/);
+                        if (!sizeMatch) return null;
+                        const width = parseInt(sizeMatch[1]);
+                        const height = parseInt(sizeMatch[2]);
+                        // Scale to fit in container (max 200px width)
+                        const maxWidth = 200;
+                        const scale = Math.min(maxWidth / width, 1);
+                        const rectWidth = width * scale;
+                        const rectHeight = height * scale;
+                        
+                        return (
+                          <div className="mt-3 p-3 bg-white rounded border">
+                            <Label className="text-xs text-gray-600 mb-2 block">Size Preview:</Label>
+                            <div className="flex items-center gap-3">
+                              <div
+                                style={{
+                                  width: `${rectWidth}px`,
+                                  height: `${rectHeight}px`,
+                                  minWidth: '20px',
+                                  minHeight: '20px'
+                                }}
+                                className="border-2 border-gray-300 bg-gray-100 flex items-center justify-center rounded"
+                              >
+                                <span className="text-xs text-gray-500 font-mono">
+                                  {width}×{height}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                <div><strong>Dimensions:</strong> {width} × {height}px</div>
+                                <div><strong>Aspect Ratio:</strong> {(width / height).toFixed(2)}:1</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      
                       {/* Individual brief descriptions for each quantity */}
                       {row.quantity > 0 && (
                         <div className="space-y-2 mt-3">
