@@ -84,9 +84,10 @@ export function generateBriefPDF(data: BriefData) {
   // Helper function to add logo to current page
   const addLogo = () => {
     try {
-      // Add logo at top right (small size: 30mm wide)
-      const logoWidth = 30;
-      const logoHeight = 10; // Approximate aspect ratio
+      // Add logo at top right with correct aspect ratio
+      // Sherbet logo is approximately 3:1 aspect ratio (width:height)
+      const logoWidth = 35;
+      const logoHeight = logoWidth / 3; // Maintain aspect ratio
       const logoX = pageWidth - margin - logoWidth;
       const logoY = 10;
       doc.addImage(logoImg, 'PNG', logoX, logoY, logoWidth, logoHeight);
@@ -293,6 +294,33 @@ export function generateBriefPDF(data: BriefData) {
         yPos
       );
       yPos += lineHeight;
+      
+      // Parse dimensions and draw a visual rectangle
+      const sizeMatch = item.size.match(/(\d+)\s*[x×]\s*(\d+)/);
+      if (sizeMatch) {
+        const width = parseInt(sizeMatch[1]);
+        const height = parseInt(sizeMatch[2]);
+        // Scale to fit on page (max 40mm width)
+        const maxWidth = 40;
+        const scale = Math.min(maxWidth / width, 1);
+        const rectWidth = width * scale * 0.1; // Convert px to mm approximately
+        const rectHeight = height * scale * 0.1;
+        
+        // Draw rectangle to visualize size
+        doc.setDrawColor(200, 200, 200);
+        doc.setFillColor(240, 240, 240);
+        doc.rect(margin + 10, yPos, rectWidth, rectHeight, 'FD');
+        
+        // Add dimensions label
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${width}×${height}px`, margin + 10 + rectWidth / 2, yPos + rectHeight / 2, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        
+        yPos += Math.max(rectHeight + 5, lineHeight);
+      }
+      
       doc.setFont("helvetica", "normal");
       item.descriptions.forEach((desc, descIdx) => {
         if (desc) {
