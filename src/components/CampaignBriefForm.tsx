@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +18,7 @@ import { Form, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Alert } from "./ui/alert";
 import { cn } from "../lib/utils";
 import * as FormOptions from "../lib/formOptions";
+import { generateBriefPDF } from "../lib/pdfGenerator";
 
 const INTERNAL_USERS = [
   { name: "Raffaele Mc Creadie", email: "raffaele@sherbet.com", phone: "+27 82 456 7890" },
@@ -222,7 +223,7 @@ function fromIsoToDate(value: string | undefined): Date | undefined {
   }
 }
 
-export function CampaignBriefForm() {
+export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
   const submitBrief = useMutation(api.briefs.submitBrief);
   const form = useForm<BriefFormValues>({
     resolver: zodResolver(briefSchema) as any,
@@ -238,9 +239,96 @@ export function CampaignBriefForm() {
     Array<{ platform: string; format: string; size: string; quantity: number; descriptions: string[] }>
   >([]);
 
+  const fillDemoData = () => {
+    const demoData: BriefFormValues = {
+      user_name: "Nakai Williams",
+      client_name: "Coca-Cola",
+      brand_name: "Coca-Cola Zero",
+      campaign_name: "Summer 2025 Launch Campaign",
+      campaign_summary: "Launch campaign for Coca-Cola Zero targeting Gen Z with focus on sustainability and active lifestyle messaging across digital and social platforms.",
+      requested_by: "Sarah Johnson",
+      job_bag_email: "sarah.johnson@coca-cola.com",
+      start_date: "2025-12-01",
+      end_date: "2026-02-28",
+      priority: "High",
+      budget: "R850,000",
+      categories: ["Strategy", "Brand Video", "Social Media", "Digital", "Influencer"],
+      strategy_options: ["Campaign strategy", "Content strategy"],
+      brand_video_durations: ["15s", "30s", "60s"],
+      brand_video_deliverables: ["Brand film", "Motion graphics", "Cutdowns", "Aspect ratios: 16:9 / 9:16 / 1:1"],
+      brand_video_details: "Hero brand film showcasing active lifestyle, with cutdowns for various social platforms. Focus on vibrant summer aesthetics.",
+      digital_options: ["Display banners", "HTML5 animations"],
+      digital_sizes: ["300x250", "728x90", "1080x1920 (mobile)"],
+      digital_details: "Animated display banners for programmatic campaign across Google Display Network.",
+      influencer_options: ["Influencer strategy", "Talent sourcing", "Campaign management"],
+      influencer_details: "Partner with 5 micro-influencers (50k-100k followers) focused on fitness and wellness.",
+      has_assets: true,
+      asset_link: "https://drive.google.com/drive/folders/example123",
+      other_requirements: "All deliverables must adhere to Coca-Cola brand guidelines v2024. Final assets needed 2 weeks before launch.",
+      references: "https://www.coca-cola.com/brand-guidelines\nhttps://pinterest.com/summer-campaign-inspo",
+      kickstart_date: "2025-11-01",
+      first_review_date: "2025-11-15",
+      sign_off_date: "2025-11-25",
+      billing_type: "Retainer",
+    };
+    
+    // Set form values
+    Object.keys(demoData).forEach((key) => {
+      form.setValue(key as any, demoData[key as keyof BriefFormValues] as any);
+    });
+    
+    // Set demo social media rows
+    setSocialRows([
+      { 
+        platform: "Instagram", 
+        format: "Reels", 
+        size: "1080 × 1920", 
+        quantity: 3,
+        descriptions: [
+          "Hero reel: Product reveal with dynamic transitions and upbeat music",
+          "Lifestyle reel: Young adults enjoying summer activities with product",
+          "Behind-the-scenes reel: Making of the campaign"
+        ]
+      },
+      { 
+        platform: "Instagram", 
+        format: "Static Posts", 
+        size: "1080 × 1080 (Square)", 
+        quantity: 2,
+        descriptions: [
+          "Product shot: Clean minimal aesthetic with summer colors",
+          "Quote graphic: Motivational messaging aligned with active lifestyle"
+        ]
+      },
+      { 
+        platform: "TikTok", 
+        format: "Videos", 
+        size: "1080 × 1920", 
+        quantity: 2,
+        descriptions: [
+          "Trend-jacking video: Tie into popular TikTok challenge",
+          "Educational content: Benefits of zero sugar vs regular"
+        ]
+      },
+    ]);
+    
+    toast.success("Demo data loaded!");
+  };
+
   const onSubmit = async (values: BriefFormValues) => {
     try {
       const userMeta = INTERNAL_USERS.find((u) => u.name === values.user_name);
+      
+      // Generate PDF
+      const pdfData = {
+        ...values,
+        user_email: userMeta?.email,
+        user_phone: userMeta?.phone,
+        social_media_items: socialRows.length > 0 ? socialRows : undefined,
+      };
+      generateBriefPDF(pdfData);
+      
+      // Submit to Convex
       await submitBrief({
         user_name: values.user_name,
         user_email: userMeta?.email,
@@ -301,7 +389,8 @@ export function CampaignBriefForm() {
         sign_off_date: values.sign_off_date,
         billing_type: values.billing_type,
       });
-      toast.success("Brief submitted");
+      
+      toast.success("Brief submitted and PDF downloaded!");
       form.reset(DEFAULT_VALUES);
       setSocialRows([]);
     } catch (error) {
@@ -312,6 +401,13 @@ export function CampaignBriefForm() {
 
   const billingType = form.watch("billing_type");
   const hasAssets = form.watch("has_assets");
+
+  // Trigger demo data when demo button clicked
+  useEffect(() => {
+    if (demoTrigger && demoTrigger > 0) {
+      fillDemoData();
+    }
+  }, [demoTrigger]);
 
   // Helper to render checkbox array fields
   const renderCheckboxArray = (
