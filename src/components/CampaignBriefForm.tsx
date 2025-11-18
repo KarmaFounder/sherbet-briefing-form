@@ -35,7 +35,7 @@ const INTERNAL_USERS = [
   { name: "Nakai Williams", email: "nakai@sherbetagency.com", phone: "+27 66 373 5300" },
   { name: "Elton Matanda", email: "elton@sherbetagency.com", phone: "+27 72 362 7229" },
   { name: "Lesedi Gwebu", email: "lesedi@sherbetagency.com", phone: "+27 76 341 6894" },
-  { name: "Caryn", email: "caryn@sherbetagency.com", phone: "+27 72 057 4793" },
+  { name: "Caryn Ravic", email: "caryn@sherbetagency.com", phone: "+27 72 057 4793" },
 ] as const;
 
 const CATEGORY_OPTIONS = [
