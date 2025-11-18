@@ -298,27 +298,52 @@ export function generateBriefPDF(data: BriefData) {
       // Parse dimensions and draw a visual rectangle
       const sizeMatch = item.size.match(/(\d+)\s*[x×]\s*(\d+)/);
       if (sizeMatch) {
+        checkPageBreak();
         const width = parseInt(sizeMatch[1]);
         const height = parseInt(sizeMatch[2]);
-        // Scale to fit on page (max 40mm width)
-        const maxWidth = 40;
-        const scale = Math.min(maxWidth / width, 1);
-        const rectWidth = width * scale * 0.1; // Convert px to mm approximately
-        const rectHeight = height * scale * 0.1;
+        
+        // Scale to fit on page (max 50mm width, keep aspect ratio)
+        const maxWidthMM = 50;
+        const aspectRatio = height / width;
+        let rectWidth = maxWidthMM;
+        let rectHeight = rectWidth * aspectRatio;
+        
+        // If height is too tall, scale by height instead
+        const maxHeightMM = 50;
+        if (rectHeight > maxHeightMM) {
+          rectHeight = maxHeightMM;
+          rectWidth = rectHeight / aspectRatio;
+        }
+        
+        // Ensure minimum size for visibility
+        const minSize = 10;
+        if (rectWidth < minSize) {
+          rectWidth = minSize;
+          rectHeight = minSize * aspectRatio;
+        }
         
         // Draw rectangle to visualize size
-        doc.setDrawColor(200, 200, 200);
-        doc.setFillColor(240, 240, 240);
+        doc.setDrawColor(180, 180, 180);
+        doc.setFillColor(245, 245, 245);
         doc.rect(margin + 10, yPos, rectWidth, rectHeight, 'FD');
         
-        // Add dimensions label
+        // Add dimensions label in center
+        doc.setFontSize(7);
+        doc.setTextColor(80, 80, 80);
+        const centerX = margin + 10 + rectWidth / 2;
+        const centerY = yPos + rectHeight / 2 + 2; // +2 for vertical centering
+        doc.text(`${width}×${height}px`, centerX, centerY, { align: 'center' });
+        
+        // Add aspect ratio info next to rectangle
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
-        doc.text(`${width}×${height}px`, margin + 10 + rectWidth / 2, yPos + rectHeight / 2, { align: 'center' });
+        doc.text(`Ratio: ${(width/height).toFixed(2)}:1`, margin + 10 + rectWidth + 3, yPos + 5);
+        
+        // Reset colors
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
         
-        yPos += Math.max(rectHeight + 5, lineHeight);
+        yPos += rectHeight + 8;
       }
       
       doc.setFont("helvetica", "normal");
