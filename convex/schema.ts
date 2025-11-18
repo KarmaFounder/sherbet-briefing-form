@@ -18,7 +18,7 @@ export default defineSchema({
     end_date: v.string(),
 
     priority: v.string(),
-    budget: v.number(),
+    budget: v.optional(v.number()),
 
     categories: v.array(v.string()),
 

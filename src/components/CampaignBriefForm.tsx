@@ -70,7 +70,7 @@ const briefSchema = z
     start_date: isoDateString,
     end_date: isoDateString,
     priority: z.enum(["High", "Medium", "Low"]),
-    budget: z.string().min(1, "Required"),
+    budget: z.string().optional(),
     categories: z.array(z.string()).min(1, "Select at least one category"),
 
     strategy_options: z.array(z.string()).optional(),
@@ -347,7 +347,7 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
         start_date: values.start_date,
         end_date: values.end_date,
         priority: values.priority,
-        budget: Number(values.budget.replace(/[^0-9.]/g, "")) || 0,
+        budget: values.budget ? Number(values.budget.replace(/[^0-9.]/g, "")) || undefined : undefined,
         categories: values.categories,
         strategy_options: values.strategy_options,
         strategy_details: values.strategy_details,
@@ -541,8 +541,8 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
               name="requested_by"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Requested by</FormLabel>
-                  <Input placeholder="Client contact" {...field} />
+                  <FormLabel>Requested by Client</FormLabel>
+                  <Input placeholder="Client contact name" {...field} />
                   <FormMessage />
                 </FormItem>
               )}
@@ -631,8 +631,8 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
               name="budget"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Budget</FormLabel>
-                  <Input placeholder="e.g. R250 000" {...field} onChange={(e) => field.onChange(e.target.value)} />
+                  <FormLabel>Budget (if known)</FormLabel>
+                  <Input placeholder="e.g. R250 000 (optional)" {...field} onChange={(e) => field.onChange(e.target.value)} />
                   <FormMessage />
                 </FormItem>
               )}

@@ -1,5 +1,9 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { extractJobIdFromEmail, buildBriefSummary, createMondayUpdate, createOutOfScopeNotification } from "./mondayHelpers";
+
+// Type declaration for process.env in Convex runtime
+declare const process: { env: Record<string, string | undefined> };
 
 export const submitBrief = mutation({
   args: {
@@ -18,7 +22,7 @@ export const submitBrief = mutation({
     end_date: v.string(),
 
     priority: v.string(),
-    budget: v.number(),
+    budget: v.optional(v.number()),
 
     categories: v.array(v.string()),
 
@@ -98,15 +102,45 @@ export const submitBrief = mutation({
     billing_type: v.string(),
   },
   handler: async (ctx, args) => {
-    if (args.billing_type === "OutOfScope") {
-      // TODO: Trigger email to Raff, Inge, and Nalize
-      console.log(
-        "[OutOfScope] Brief submitted; notify Raff, Inge, Nalize:",
-        args.campaign_name,
-      );
+    // Insert brief into database
+    const id = await ctx.db.insert("briefs", args);
+
+    // Monday.com integration
+    try {
+      const mondayApiKey = process.env.MONDAY_API_KEY;
+      
+      if (mondayApiKey && args.job_bag_email) {
+        // Extract job ID from email
+        const jobId = extractJobIdFromEmail(args.job_bag_email);
+        
+        if (jobId) {
+          console.log(`[Monday] Posting update to job ${jobId}`);
+          
+          // Create brief summary update
+          const briefSummary = buildBriefSummary(args);
+          await createMondayUpdate(mondayApiKey, jobId, briefSummary);
+          
+          // If Out of Scope, create second update with @mentions
+          if (args.billing_type === "OutOfScope") {
+            console.log(`[Monday] Creating Out of Scope notification for job ${jobId}`);
+            await createOutOfScopeNotification(
+              mondayApiKey,
+              jobId,
+              args.campaign_name,
+              args.user_name
+            );
+          }
+        } else {
+          console.log(`[Monday] Could not extract job ID from email: ${args.job_bag_email}`);
+        }
+      } else {
+        console.log("[Monday] API key or job bag email not provided");
+      }
+    } catch (error) {
+      // Log error but don't fail the submission
+      console.error("[Monday] Error posting update:", error);
     }
 
-    const id = await ctx.db.insert("briefs", args);
     return id;
   },
 });

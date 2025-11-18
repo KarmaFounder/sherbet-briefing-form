@@ -13,7 +13,7 @@ interface BriefData {
   start_date: string;
   end_date: string;
   priority: string;
-  budget: string;
+  budget?: string;
   categories: string[];
   strategy_options?: string[];
   strategy_details?: string;
