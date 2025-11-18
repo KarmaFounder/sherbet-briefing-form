@@ -10,6 +10,7 @@ export const submitBrief = mutation({
     client_name: v.string(),
     brand_name: v.string(),
     campaign_name: v.string(),
+    campaign_summary: v.string(),
     requested_by: v.string(),
     job_bag_email: v.string(),
 
@@ -21,41 +22,85 @@ export const submitBrief = mutation({
 
     categories: v.array(v.string()),
 
-    tv_requirements: v.optional(
-      v.object({
-        script: v.boolean(),
-        production: v.boolean(),
-        storyboard: v.boolean(),
-        location: v.boolean(),
-        concept: v.boolean(),
-        pitch: v.boolean(),
-        talent: v.boolean(),
-        media_buying: v.boolean(),
-        research: v.boolean(),
-        details: v.string(),
-      }),
-    ),
+    strategy_options: v.optional(v.array(v.string())),
+    brand_dev_options: v.optional(v.array(v.string())),
 
-    social_requirements: v.optional(v.string()),
-    generic_category_requirements: v.optional(v.string()),
+    tv_durations: v.optional(v.array(v.string())),
+    tv_deliverables: v.optional(v.array(v.string())),
+    tv_details: v.optional(v.string()),
+
+    radio_durations: v.optional(v.array(v.string())),
+    radio_deliverables: v.optional(v.array(v.string())),
+    radio_details: v.optional(v.string()),
+
+    billboard_sizes: v.optional(v.array(v.string())),
+    billboard_deliverables: v.optional(v.array(v.string())),
+    billboard_details: v.optional(v.string()),
+
+    print_sizes: v.optional(v.array(v.string())),
+    print_deliverables: v.optional(v.array(v.string())),
+    print_details: v.optional(v.string()),
+
+    brand_video_durations: v.optional(v.array(v.string())),
+    brand_video_deliverables: v.optional(v.array(v.string())),
+    brand_video_details: v.optional(v.string()),
+
+    photography_types: v.optional(v.array(v.string())),
+    photography_deliverables: v.optional(v.array(v.string())),
+    photography_details: v.optional(v.string()),
+
+    pr_options: v.optional(v.array(v.string())),
+    pr_details: v.optional(v.string()),
+
+    influencer_options: v.optional(v.array(v.string())),
+    influencer_details: v.optional(v.string()),
+
+    activation_options: v.optional(v.array(v.string())),
+    activation_details: v.optional(v.string()),
+
+    digital_options: v.optional(v.array(v.string())),
+    digital_sizes: v.optional(v.array(v.string())),
+    digital_details: v.optional(v.string()),
+
+    app_build_options: v.optional(v.array(v.string())),
+    app_build_details: v.optional(v.string()),
+
+    website_options: v.optional(v.array(v.string())),
+    website_details: v.optional(v.string()),
+
+    other_options: v.optional(v.array(v.string())),
+    other_details: v.optional(v.string()),
+
+    social_media_items: v.optional(
+      v.array(
+        v.object({
+          platform: v.string(),
+          format: v.string(),
+          size: v.string(),
+          quantity: v.number(),
+        }),
+      ),
+    ),
 
     has_assets: v.boolean(),
     asset_link: v.optional(v.string()),
 
+    other_requirements: v.optional(v.string()),
     references: v.string(),
 
     kickstart_date: v.string(),
     first_review_date: v.string(),
     sign_off_date: v.string(),
 
-    billing_type: v.string(), // "Retainer" | "OutOfScope"
+    billing_type: v.string(),
   },
   handler: async (ctx, args) => {
-    // TODO: Additional cross-field validation can be added here if needed.
-
     if (args.billing_type === "OutOfScope") {
-      // TODO: Trigger SendGrid email to management (Inge, Raff, Lara, Nalize)
-      console.log("OutOfScope brief submitted, notify management");
+      // TODO: Trigger email to Raff, Inge, and Nalize
+      console.log(
+        "[OutOfScope] Brief submitted; notify Raff, Inge, Nalize:",
+        args.campaign_name,
+      );
     }
 
     const id = await ctx.db.insert("briefs", args);
