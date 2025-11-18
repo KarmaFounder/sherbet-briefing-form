@@ -37,8 +37,8 @@ export const postBriefToMonday = action({
         console.log(`[Monday Action] PDF stored at: ${pdfUrl}`);
       }
       
-      // Create brief summary update with PDF link
-      const briefSummary = buildBriefSummary(args.briefData, pdfUrl);
+      // Create brief summary update (without PDF link for now to debug)
+      const briefSummary = buildBriefSummary(args.briefData, null);
       const updateId = await createMondayUpdate(mondayApiKey, jobId, briefSummary);
       
       console.log(`[Monday Action] Successfully created update ${updateId}`);
