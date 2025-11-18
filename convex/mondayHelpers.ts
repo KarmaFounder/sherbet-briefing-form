@@ -16,8 +16,9 @@ export const MONDAY_USER_IDS = {
 export async function createMondayUpdate(
   apiKey: string,
   itemId: string,
-  briefText: string
-): Promise<void> {
+  briefText: string,
+  pdfBase64?: string
+): Promise<string> {
   const mutation = `
     mutation ($itemId: ID!, $body: String!) {
       create_update (item_id: $itemId, body: $body) {
@@ -49,7 +50,54 @@ export async function createMondayUpdate(
     throw new Error(`Monday API Error: ${JSON.stringify(data.errors)}`);
   }
 
-  return data.data.create_update;
+  const updateId = data.data.create_update.id;
+
+  // If PDF provided, attach it to the update
+  if (pdfBase64) {
+    await attachFileToUpdate(apiKey, updateId, pdfBase64);
+  }
+
+  return updateId;
+}
+
+// Attach PDF file to Monday.com update
+export async function attachFileToUpdate(
+  apiKey: string,
+  updateId: string,
+  pdfBase64: string
+): Promise<void> {
+  const mutation = `
+    mutation ($updateId: ID!, $file: File!) {
+      add_file_to_update (update_id: $updateId, file: $file) {
+        id
+      }
+    }
+  `;
+
+  // Convert base64 to file format Monday expects
+  const variables = {
+    updateId,
+    file: pdfBase64,
+  };
+
+  const response = await fetch("https://api.monday.com/v2", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: apiKey,
+    },
+    body: JSON.stringify({
+      query: mutation,
+      variables,
+    }),
+  });
+
+  const data = await response.json();
+  
+  if (data.errors) {
+    console.error("Failed to attach PDF to Monday update:", data.errors);
+    // Don't throw - let the update succeed even if file attachment fails
+  }
 }
 
 // Create Out of Scope notification update mentioning specific users

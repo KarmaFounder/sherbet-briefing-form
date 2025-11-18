@@ -98,5 +98,6 @@ export default defineSchema({
     sign_off_date: v.string(),
 
     billing_type: v.string(),
+    pdf_base64: v.optional(v.string()),
   }),
 });

@@ -100,6 +100,7 @@ export const submitBrief = mutation({
     sign_off_date: v.string(),
 
     billing_type: v.string(),
+    pdf_base64: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Insert brief into database
@@ -116,9 +117,9 @@ export const submitBrief = mutation({
         if (jobId) {
           console.log(`[Monday] Posting update to job ${jobId}`);
           
-          // Create brief summary update
+          // Create brief summary update with PDF attachment
           const briefSummary = buildBriefSummary(args);
-          await createMondayUpdate(mondayApiKey, jobId, briefSummary);
+          await createMondayUpdate(mondayApiKey, jobId, briefSummary, args.pdf_base64);
           
           // If Out of Scope, create second update with @mentions
           if (args.billing_type === "OutOfScope") {

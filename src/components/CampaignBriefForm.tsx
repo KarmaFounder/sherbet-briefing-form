@@ -324,16 +324,16 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
     try {
       const userMeta = INTERNAL_USERS.find((u) => u.name === values.user_name);
       
-      // Generate PDF
+      // Generate PDF and get base64
       const pdfData = {
         ...values,
         user_email: userMeta?.email,
         user_phone: userMeta?.phone,
         social_media_items: socialRows.length > 0 ? socialRows : undefined,
       };
-      generateBriefPDF(pdfData);
+      const pdfBase64 = generateBriefPDF(pdfData); // Now returns base64
       
-      // Submit to Convex
+      // Submit to Convex with PDF
       await submitBrief({
         user_name: values.user_name,
         user_email: userMeta?.email,
@@ -395,6 +395,7 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
         first_review_date: values.first_review_date,
         sign_off_date: values.sign_off_date,
         billing_type: values.billing_type,
+        pdf_base64: pdfBase64,
       });
       
       toast.success("Brief submitted and PDF downloaded!");

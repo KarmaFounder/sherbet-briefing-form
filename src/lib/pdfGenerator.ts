@@ -315,4 +315,7 @@ export function generateBriefPDF(data: BriefData) {
   // Save
   const filename = `Campaign_Brief_${data.campaign_name.replace(/[^a-z0-9]/gi, "_")}_${Date.now()}.pdf`;
   doc.save(filename);
+  
+  // Return base64 for backend upload
+  return doc.output('datauristring').split(',')[1]; // Returns base64 string without data:application/pdf;base64, prefix
 }
