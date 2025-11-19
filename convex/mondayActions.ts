@@ -1,6 +1,12 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { extractJobIdFromEmail, buildBriefSummary, MONDAY_USER_IDS } from "./mondayHelpers";
+// IMPORT the full-featured functions from your helper file
+import { 
+  extractJobIdFromEmail, 
+  buildBriefSummary, 
+  createMondayUpdate, 
+  createOutOfScopeNotification 
+} from "./mondayHelpers";
 
 // Type declaration for process.env in Convex runtime
 declare const process: { env: Record<string, string | undefined> };
@@ -30,19 +36,27 @@ export const postBriefToMonday = action({
     try {
       console.log(`[Monday Action] Posting update to job ${jobId}`);
       
-      // Store PDF in Convex storage if provided
+      // 1. Store PDF in Convex storage (Optional backup)
       let pdfUrl = null;
       if (args.pdfBase64) {
         pdfUrl = await storePdfAndGetUrl(ctx, args.pdfBase64);
         console.log(`[Monday Action] PDF stored at: ${pdfUrl}`);
       }
       
-      // Create brief summary update (without PDF link for now to debug)
-      const briefSummary = buildBriefSummary(args.briefData, null);
-      const updateId = await createMondayUpdate(mondayApiKey, jobId, briefSummary);
+      // 2. Create brief summary text
+      // We pass the pdfUrl so it can be included in the text body if you wish
+      const briefSummary = buildBriefSummary(args.briefData, pdfUrl);
+      
+      // 3. Create Update AND Attach PDF
+      // This uses the helper from mondayHelpers.ts which handles the file attachment logic
+      const updateId = await createMondayUpdate(
+        mondayApiKey, 
+        jobId, 
+        briefSummary, 
+        args.pdfBase64
+      );
       
       console.log(`[Monday Action] Successfully created update ${updateId}`);
-      // Note: PDF is downloaded to user's computer when they submit the brief
       
       // If Out of Scope, create second update with @mentions
       if (args.briefData.billing_type === "OutOfScope") {
@@ -84,65 +98,4 @@ async function storePdfAndGetUrl(
   const url = await ctx.storage.getUrl(storageId);
   
   return url;
-}
-
-// Helper function to create Monday update (now inside action)
-async function createMondayUpdate(
-  apiKey: string,
-  itemId: string,
-  briefText: string
-): Promise<string> {
-  const mutation = `
-    mutation ($itemId: ID!, $body: String!) {
-      create_update (item_id: $itemId, body: $body) {
-        id
-      }
-    }
-  `;
-
-  const variables = {
-    itemId,
-    body: briefText,
-  };
-
-  const response = await fetch("https://api.monday.com/v2", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: apiKey,
-    },
-    body: JSON.stringify({
-      query: mutation,
-      variables,
-    }),
-  });
-
-  const data = await response.json();
-  
-  if (data.errors) {
-    throw new Error(`Monday API Error: ${JSON.stringify(data.errors)}`);
-  }
-
-  return data.data.create_update.id;
-}
-
-// Helper function to create Out of Scope notification
-async function createOutOfScopeNotification(
-  apiKey: string,
-  itemId: string,
-  campaignName: string,
-  submitterName: string
-): Promise<void> {
-  const mentions = [
-    MONDAY_USER_IDS.RAFFAELE,
-    MONDAY_USER_IDS.INGE,
-    MONDAY_USER_IDS.NAKAI,
-    MONDAY_USER_IDS.ELTON,
-  ];
-
-  const mentionsText = mentions.map(id => `@[${id}]`).join(" ");
-  
-  const body = `🚨 OUT OF SCOPE BRIEF\n\n${mentionsText}\n\nCampaign: ${campaignName}\nSubmitted by: ${submitterName}\n\nThis brief has been marked as Out of Scope and requires your attention.`;
-
-  await createMondayUpdate(apiKey, itemId, body);
 }

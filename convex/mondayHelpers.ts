@@ -76,37 +76,46 @@ export async function attachFileToUpdate(
   updateId: string,
   pdfBase64: string
 ): Promise<void> {
-  const mutation = `
-    mutation ($updateId: ID!, $file: File!) {
-      add_file_to_update (update_id: $updateId, file: $file) {
-        id
-      }
+  try {
+    // 1. Convert base64 to Blob
+    const binaryString = atob(pdfBase64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
-  `;
+    const pdfBlob = new Blob([bytes], { type: "application/pdf" });
 
-  // Convert base64 to file format Monday expects
-  const variables = {
-    updateId,
-    file: pdfBase64,
-  };
+    // 2. Construct FormData for GraphQL Multipart Request
+    // Endpoint for files is /v2/file
+    const query = `mutation ($updateId: ID!, $file: File!) { add_file_to_update (update_id: $updateId, file: $file) { id } }`;
+    const variables = { updateId: parseInt(updateId) }; 
+    const map = { "0": ["variables.file"] };
 
-  const response = await fetch("https://api.monday.com/v2", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: apiKey,
-    },
-    body: JSON.stringify({
-      query: mutation,
-      variables,
-    }),
-  });
+    const formData = new FormData();
+    formData.append("query", query);
+    formData.append("variables", JSON.stringify(variables));
+    formData.append("map", JSON.stringify(map));
+    formData.append("0", pdfBlob, "campaign_brief.pdf");
 
-  const data = await response.json();
-  
-  if (data.errors) {
-    console.error("Failed to attach PDF to Monday update:", data.errors);
-    // Don't throw - let the update succeed even if file attachment fails
+    const response = await fetch("https://api.monday.com/v2/file", {
+      method: "POST",
+      headers: {
+        Authorization: apiKey,
+        // Content-Type header is automatically set by fetch for FormData
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    
+    if (data.errors) {
+      console.error("Failed to attach PDF to Monday update:", JSON.stringify(data.errors));
+    } else {
+      console.log("PDF attached successfully:", data.data?.add_file_to_update?.id);
+    }
+  } catch (error) {
+    console.error("Error in attachFileToUpdate:", error);
   }
 }
 
