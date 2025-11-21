@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, isAfter, parseISO } from "date-fns";
@@ -136,6 +136,7 @@ const briefSchema = z
     const end = parseISO(values.end_date);
     if (!isAfter(end, start) && end.getTime() !== start.getTime()) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["end_date"], message: "End must be on/after start" });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["start_date"], message: "Start must be before/on end" });
     }
     const kickstart = parseISO(values.kickstart_date);
     const firstReview = parseISO(values.first_review_date);
@@ -144,11 +145,13 @@ const briefSchema = z
     // Kickstart cannot be after first review
     if (isAfter(kickstart, firstReview)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["kickstart_date"], message: "Kickstart cannot be after first review" });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["first_review_date"], message: "First review must be after kickstart" });
     }
 
     // First review cannot be after deadline
     if (isAfter(firstReview, signoff)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["first_review_date"], message: "First review cannot be after deadline for sign-off" });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["first_review_date"], message: "First review cannot be after deadline" });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sign_off_date"], message: "Deadline must be after first review" });
     }
 
     if (values.has_assets && !values.asset_link) {
@@ -237,7 +240,7 @@ export function CampaignBriefForm({ demoTrigger, onSubmitted }: { demoTrigger?: 
   const form = useForm<BriefFormValues>({
     resolver: zodResolver(briefSchema) as any,
     defaultValues: DEFAULT_VALUES,
-    mode: "onBlur",
+    mode: "onChange",
   });
 
   const watchCategories = form.watch("categories");
@@ -403,8 +406,45 @@ export function CampaignBriefForm({ demoTrigger, onSubmitted }: { demoTrigger?: 
     }
   };
 
+  const onInvalid = (errors: FieldErrors<BriefFormValues>) => {
+    console.error("Form errors:", errors);
+    toast.error("Form has errors", {
+      description: "Please fix the validation errors highlighted in the form.",
+    });
+  };
+
   const billingType = form.watch("billing_type");
   const hasAssets = form.watch("has_assets");
+  
+  // Watch dates for cross-field validation triggers
+  const watchStartDate = form.watch("start_date");
+  const watchEndDate = form.watch("end_date");
+  const watchKickstart = form.watch("kickstart_date");
+  const watchFirstReview = form.watch("first_review_date");
+  const watchSignOff = form.watch("sign_off_date");
+
+  // Trigger validation on dependent date fields when source changes (Bidirectional)
+  useEffect(() => {
+    if (form.getValues("end_date")) form.trigger("end_date");
+  }, [watchStartDate, form.trigger]);
+
+  useEffect(() => {
+    if (form.getValues("start_date")) form.trigger("start_date");
+  }, [watchEndDate, form.trigger]);
+
+  useEffect(() => {
+    if (form.getValues("first_review_date")) form.trigger("first_review_date");
+  }, [watchKickstart, form.trigger]);
+
+  useEffect(() => {
+    // When first_review changes, check neighbors
+    if (form.getValues("sign_off_date")) form.trigger("sign_off_date");
+    if (form.getValues("kickstart_date")) form.trigger("kickstart_date");
+  }, [watchFirstReview, form.trigger]);
+
+  useEffect(() => {
+    if (form.getValues("first_review_date")) form.trigger("first_review_date");
+  }, [watchSignOff, form.trigger]);
 
   // Trigger demo data when demo button clicked
   useEffect(() => {
@@ -461,7 +501,7 @@ export function CampaignBriefForm({ demoTrigger, onSubmitted }: { demoTrigger?: 
 
   return (
     <Form {...form}>
-      <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+      <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit, onInvalid)} noValidate>
         {/* Section A */}
         <section className="space-y-4 rounded-lg border bg-card p-4 shadow-sm">
           <h2 className="text-base font-semibold">Section A – Overview</h2>
