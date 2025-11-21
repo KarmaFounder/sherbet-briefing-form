@@ -1,11 +1,10 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-// IMPORT the full-featured functions from your helper file
-import { 
-  extractJobIdFromEmail, 
-  buildBriefSummary, 
-  createMondayUpdate, 
-  createOutOfScopeNotification 
+import {
+  extractJobIdFromEmail,
+  buildBriefSummary,
+  createMondayUpdate,
+  createOutOfScopeNotification,
 } from "./mondayHelpers";
 
 // Type declaration for process.env in Convex runtime
@@ -15,11 +14,11 @@ declare const process: { env: Record<string, string | undefined> };
 export const postBriefToMonday = action({
   args: {
     briefData: v.any(), // The full brief data
-    pdfBase64: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     const mondayApiKey = process.env.MONDAY_API_TOKEN;
-    
+    const googleWebhookUrl = process.env.GOOGLE_WEBHOOK_URL; // Optional: Google Apps Script webhook
+
     if (!mondayApiKey || !args.briefData.job_bag_email) {
       console.log("[Monday Action] API key or job bag email not provided");
       return { success: false, message: "API key or job bag email not provided" };
@@ -27,7 +26,7 @@ export const postBriefToMonday = action({
 
     // Extract job ID from email
     const jobId = extractJobIdFromEmail(args.briefData.job_bag_email);
-    
+
     if (!jobId) {
       console.log(`[Monday Action] Could not extract job ID from email: ${args.briefData.job_bag_email}`);
       return { success: false, message: "Could not extract job ID from email" };
@@ -35,29 +34,32 @@ export const postBriefToMonday = action({
 
     try {
       console.log(`[Monday Action] Posting update to job ${jobId}`);
-      
-      // 1. Store PDF in Convex storage (Optional backup)
-      let pdfUrl = null;
-      if (args.pdfBase64) {
-        pdfUrl = await storePdfAndGetUrl(ctx, args.pdfBase64);
-        console.log(`[Monday Action] PDF stored at: ${pdfUrl}`);
-      }
-      
-      // 2. Create brief summary text
-      // We pass the pdfUrl so it can be included in the text body if you wish
-      const briefSummary = buildBriefSummary(args.briefData, pdfUrl);
-      
-      // 3. Create Update AND Attach PDF
-      // This uses the helper from mondayHelpers.ts which handles the file attachment logic
-      const updateId = await createMondayUpdate(
-        mondayApiKey, 
-        jobId, 
-        briefSummary, 
-        args.pdfBase64
-      );
-      
+
+      // Create Monday update containing the full brief (no PDF attachment)
+      const briefSummary = buildBriefSummary(args.briefData);
+      const updateId = await createMondayUpdate(mondayApiKey, jobId, briefSummary);
+
       console.log(`[Monday Action] Successfully created update ${updateId}`);
-      
+
+      // Optionally notify Google Apps Script webhook so it can email the user
+      if (googleWebhookUrl && args.briefData.user_email) {
+        try {
+          await sendGoogleWebhook(googleWebhookUrl, {
+            jobId,
+            jobBagEmail: args.briefData.job_bag_email,
+            campaignName: args.briefData.campaign_name,
+            clientName: args.briefData.client_name,
+            brandName: args.briefData.brand_name,
+            userName: args.briefData.user_name,
+            userEmail: args.briefData.user_email,
+            submittedAt: new Date().toISOString(),
+          });
+          console.log("[Monday Action] Notified Google webhook about submitted brief");
+        } catch (error) {
+          console.error("[Monday Action] Failed to notify Google webhook:", error);
+        }
+      }
+
       // If Out of Scope, create second update with @mentions
       if (args.briefData.billing_type === "OutOfScope") {
         console.log(`[Monday Action] Creating Out of Scope notification for job ${jobId}`);
@@ -65,10 +67,10 @@ export const postBriefToMonday = action({
           mondayApiKey,
           jobId,
           args.briefData.campaign_name,
-          args.briefData.user_name
+          args.briefData.user_name,
         );
       }
-      
+
       return { success: true, jobId, updateId };
     } catch (error) {
       console.error("[Monday Action] Error posting update:", error);
@@ -77,25 +79,13 @@ export const postBriefToMonday = action({
   },
 });
 
-// Store PDF in Convex storage and return URL
-async function storePdfAndGetUrl(
-  ctx: any,
-  pdfBase64: string
-): Promise<string> {
-  // Convert base64 to blob
-  const byteCharacters = atob(pdfBase64);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-  const byteArray = new Uint8Array(byteNumbers);
-  const blob = new Blob([byteArray], { type: 'application/pdf' });
-  
-  // Upload to Convex storage
-  const storageId = await ctx.storage.store(blob);
-  
-  // Get public URL
-  const url = await ctx.storage.getUrl(storageId);
-  
-  return url;
+// Helper to POST payload to Google Apps Script webhook
+async function sendGoogleWebhook(url: string, payload: unknown): Promise<void> {
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
 }

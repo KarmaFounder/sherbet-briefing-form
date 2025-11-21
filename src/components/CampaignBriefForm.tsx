@@ -18,7 +18,6 @@ import { Form, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Alert } from "./ui/alert";
 import { cn } from "../lib/utils";
 import * as FormOptions from "../lib/formOptions";
-import { generateBriefPDF } from "../lib/pdfGenerator";
 
 const INTERNAL_USERS = [
   { name: "Raffaele Mc Creadie", email: "raffaele@sherbetagency.com", phone: "+27 82 771 5667" },
@@ -141,12 +140,17 @@ const briefSchema = z
     const kickstart = parseISO(values.kickstart_date);
     const firstReview = parseISO(values.first_review_date);
     const signoff = parseISO(values.sign_off_date);
-    if (!isAfter(firstReview, kickstart) && firstReview.getTime() !== kickstart.getTime()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["first_review_date"], message: "First review must be on/after kickstart" });
+
+    // Kickstart cannot be after first review
+    if (isAfter(kickstart, firstReview)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["kickstart_date"], message: "Kickstart cannot be after first review" });
     }
-    if (!isAfter(signoff, firstReview) && signoff.getTime() !== firstReview.getTime()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sign_off_date"], message: "Sign-off must be on/after first review" });
+
+    // First review cannot be after deadline
+    if (isAfter(firstReview, signoff)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["first_review_date"], message: "First review cannot be after deadline for sign-off" });
     }
+
     if (values.has_assets && !values.asset_link) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["asset_link"], message: "Asset link required" });
     }
@@ -228,7 +232,7 @@ function fromIsoToDate(value: string | undefined): Date | undefined {
   }
 }
 
-export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
+export function CampaignBriefForm({ demoTrigger, onSubmitted }: { demoTrigger?: number; onSubmitted?: () => void }) {
   const submitBrief = useMutation(api.briefs.submitBrief);
   const form = useForm<BriefFormValues>({
     resolver: zodResolver(briefSchema) as any,
@@ -325,16 +329,7 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
     try {
       const userMeta = INTERNAL_USERS.find((u) => u.name === values.user_name);
       
-      // Generate PDF and get base64
-      const pdfData = {
-        ...values,
-        user_email: userMeta?.email,
-        user_phone: userMeta?.phone,
-        social_media_items: socialRows.length > 0 ? socialRows : undefined,
-      };
-      const pdfBase64 = generateBriefPDF(pdfData); // Now returns base64
-      
-      // Submit to Convex with PDF
+      // Submit brief (no PDF generation/download)
       await submitBrief({
         user_name: values.user_name,
         user_email: userMeta?.email,
@@ -396,12 +391,12 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
         first_review_date: values.first_review_date,
         sign_off_date: values.sign_off_date,
         billing_type: values.billing_type,
-        pdf_base64: pdfBase64,
       });
       
-      toast.success("Brief submitted and PDF downloaded!");
+      toast.success("Brief submitted!");
       form.reset(DEFAULT_VALUES);
       setSocialRows([]);
+      onSubmitted?.();
     } catch (error) {
       console.error(error);
       toast.error("Failed to submit brief");
@@ -533,7 +528,7 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Campaign Name</FormLabel>
-                  <Input placeholder="Campaign name" {...field} />
+                  <Input placeholder="must be same name as the job bag" {...field} />
                   <FormMessage />
                 </FormItem>
               )}
@@ -555,7 +550,7 @@ export function CampaignBriefForm({ demoTrigger }: { demoTrigger?: number }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Job Bag Update Email</FormLabel>
-                  <Input type="email" placeholder="name@client.com" {...field} />
+                  <Input type="email" placeholder="email addresses JB provided by mail" {...field} />
                   <FormMessage />
                 </FormItem>
               )}

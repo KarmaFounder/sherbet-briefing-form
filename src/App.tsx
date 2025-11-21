@@ -5,6 +5,7 @@ import { useState } from "react";
 function App() {
   const [demoTrigger, setDemoTrigger] = useState(0);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   
   const handleAdminClick = () => {
     const password = prompt("Enter admin password:");
@@ -43,7 +44,25 @@ function App() {
         </p>
       </header>
       <main>
-        <CampaignBriefForm demoTrigger={demoTrigger} />
+        {submitted ? (
+          <div className="mt-6 rounded-md border bg-card p-6 text-center">
+            <h2 className="text-xl font-semibold mb-2">Brief submitted</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Thank you. Your campaign brief has been submitted successfully.
+            </p>
+            <button
+              onClick={() => {
+                setSubmitted(false);
+                setDemoTrigger(0);
+              }}
+              className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+            >
+              Submit another brief
+            </button>
+          </div>
+        ) : (
+          <CampaignBriefForm demoTrigger={demoTrigger} onSubmitted={() => setSubmitted(true)} />
+        )}
       </main>
       {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
     </div>

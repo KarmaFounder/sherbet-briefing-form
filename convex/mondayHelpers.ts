@@ -141,27 +141,175 @@ export async function createOutOfScopeNotification(
   await createMondayUpdate(apiKey, itemId, body);
 }
 
-// Build brief summary text for Monday update
-export function buildBriefSummary(briefData: any, pdfUrl?: string | null): string {
-  const lines = [
-    `NEW CAMPAIGN BRIEF SUBMITTED`,
-    ``,
-    `Campaign: ${briefData.campaign_name}`,
-    `Client: ${briefData.client_name}`,
-    `Brand: ${briefData.brand_name}`,
-    `Priority: ${briefData.priority}`,
-    `Submitted by: ${briefData.user_name}`,
-    ``,
-    `Summary: ${briefData.campaign_summary.substring(0, 150)}...`,
-    ``,
-    `Start: ${briefData.kickstart_date}`,
-    `Billing: ${briefData.billing_type}`,
-  ];
+// Build full brief text for Monday update (no PDF links)
+export function buildBriefSummary(briefData: any): string {
+  const lines: string[] = [];
 
-  if (pdfUrl) {
-    lines.push(``);
-    lines.push(`View full brief PDF at: ${pdfUrl}`);
+  const pushIfValue = (label: string, value: unknown) => {
+    if (value === undefined || value === null || value === "") return;
+    lines.push(`${label}: ${String(value)}`);
+  };
+
+  const pushList = (label: string, values?: string[]) => {
+    if (!values || values.length === 0) return;
+    lines.push(`${label}: ${values.join(", ")}`);
+  };
+
+  lines.push("NEW CAMPAIGN BRIEF SUBMITTED");
+  lines.push("");
+
+  // Overview
+  lines.push("=== Overview ===");
+  pushIfValue("Campaign", briefData.campaign_name);
+  pushIfValue("Client", briefData.client_name);
+  pushIfValue("Brand", briefData.brand_name);
+  pushIfValue("Requested by", briefData.requested_by);
+  pushIfValue("Submitted by", briefData.user_name);
+  pushIfValue("Submitter email", briefData.user_email);
+  pushIfValue("Submitter phone", briefData.user_phone);
+  pushIfValue("Job bag email", briefData.job_bag_email);
+  lines.push("");
+
+  // Timing & priority
+  lines.push("=== Timing & Priority ===");
+  pushIfValue("Campaign start", briefData.start_date);
+  pushIfValue("Campaign end", briefData.end_date);
+  pushIfValue("Kickstart", briefData.kickstart_date);
+  pushIfValue("First review", briefData.first_review_date);
+  pushIfValue("Sign-off deadline", briefData.sign_off_date);
+  pushIfValue("Priority", briefData.priority);
+  pushIfValue("Budget", briefData.budget);
+  pushIfValue("Billing type", briefData.billing_type);
+  lines.push("");
+
+  // Summary
+  lines.push("=== Campaign Summary ===");
+  if (briefData.campaign_summary) {
+    lines.push(String(briefData.campaign_summary));
   }
+  lines.push("");
+
+  // Categories
+  lines.push("=== Categories Required ===");
+  pushList("Categories", briefData.categories);
+  lines.push("");
+
+  // Per-category details
+  const section = (title: string, builder: () => void) => {
+    const before = lines.length;
+    builder();
+    if (lines.length > before) {
+      lines.splice(before, 0, `--- ${title} ---`);
+      lines.push("");
+    }
+  };
+
+  section("Strategy", () => {
+    pushList("Options", briefData.strategy_options);
+    pushIfValue("Details", briefData.strategy_details);
+  });
+
+  section("Brand Development", () => {
+    pushList("Options", briefData.brand_dev_options);
+    pushIfValue("Details", briefData.brand_dev_details);
+  });
+
+  section("TV", () => {
+    pushList("Durations", briefData.tv_durations);
+    pushList("Deliverables", briefData.tv_deliverables);
+    pushIfValue("Details", briefData.tv_details);
+  });
+
+  section("Radio", () => {
+    pushList("Durations", briefData.radio_durations);
+    pushList("Deliverables", briefData.radio_deliverables);
+    pushIfValue("Details", briefData.radio_details);
+  });
+
+  section("Billboard", () => {
+    pushList("Sizes", briefData.billboard_sizes);
+    pushList("Deliverables", briefData.billboard_deliverables);
+    pushIfValue("Details", briefData.billboard_details);
+  });
+
+  section("Print", () => {
+    pushList("Sizes", briefData.print_sizes);
+    pushList("Deliverables", briefData.print_deliverables);
+    pushIfValue("Details", briefData.print_details);
+  });
+
+  section("Brand Video", () => {
+    pushList("Durations", briefData.brand_video_durations);
+    pushList("Deliverables", briefData.brand_video_deliverables);
+    pushIfValue("Details", briefData.brand_video_details);
+  });
+
+  section("Photography", () => {
+    pushList("Types", briefData.photography_types);
+    pushList("Deliverables", briefData.photography_deliverables);
+    pushIfValue("Details", briefData.photography_details);
+  });
+
+  section("PR", () => {
+    pushList("Options", briefData.pr_options);
+    pushIfValue("Details", briefData.pr_details);
+  });
+
+  section("Influencer", () => {
+    pushList("Options", briefData.influencer_options);
+    pushIfValue("Details", briefData.influencer_details);
+  });
+
+  section("Activation", () => {
+    pushList("Options", briefData.activation_options);
+    pushIfValue("Details", briefData.activation_details);
+  });
+
+  section("Digital", () => {
+    pushList("Options", briefData.digital_options);
+    pushList("Banner sizes", briefData.digital_sizes);
+    pushIfValue("Details", briefData.digital_details);
+  });
+
+  section("Application Build", () => {
+    pushList("Options", briefData.app_build_options);
+    pushIfValue("Details", briefData.app_build_details);
+  });
+
+  section("Website", () => {
+    pushList("Options", briefData.website_options);
+    pushIfValue("Details", briefData.website_details);
+  });
+
+  section("Other", () => {
+    pushList("Options", briefData.other_options);
+    pushIfValue("Details", briefData.other_details);
+  });
+
+  // Social media items
+  if (briefData.social_media_items && briefData.social_media_items.length > 0) {
+    lines.push("=== Social Media Items ===");
+    briefData.social_media_items.forEach((item: any, index: number) => {
+      lines.push(`Item ${index + 1}: ${item.platform} - ${item.format} - ${item.size} (Qty: ${item.quantity})`);
+      if (item.descriptions && item.descriptions.length > 0) {
+        item.descriptions.forEach((desc: string, idx: number) => {
+          if (desc) {
+            lines.push(`  - Variant ${idx + 1}: ${desc}`);
+          }
+        });
+      }
+    });
+    lines.push("");
+  }
+
+  // Additional information
+  lines.push("=== Additional Information ===");
+  if (briefData.has_assets !== undefined) {
+    lines.push(`Assets from client: ${briefData.has_assets ? "Yes" : "No"}`);
+  }
+  pushIfValue("Asset link", briefData.asset_link);
+  pushIfValue("Other requirements", briefData.other_requirements);
+  pushIfValue("References", briefData.references);
 
   return lines.join("\n");
 }

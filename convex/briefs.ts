@@ -97,20 +97,15 @@ export const submitBrief = mutation({
     sign_off_date: v.string(),
 
     billing_type: v.string(),
-    pdf_base64: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Extract pdf_base64 before inserting to database (not stored in DB)
-    const { pdf_base64, ...briefData } = args;
-    
-    // Insert brief into database (without pdf_base64)
-    const id = await ctx.db.insert("briefs", briefData);
+    // Insert brief into database
+    const id = await ctx.db.insert("briefs", args);
 
     // Monday.com integration - schedule action to run asynchronously
     // This doesn't block the mutation from completing
     ctx.scheduler.runAfter(0, (internal as any).mondayActions.postBriefToMonday, {
-      briefData: briefData,
-      pdfBase64: pdf_base64,
+      briefData: args,
     });
 
     return id;
