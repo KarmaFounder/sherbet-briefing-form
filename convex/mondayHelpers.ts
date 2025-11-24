@@ -170,13 +170,20 @@ export function buildBriefSummary(briefData: any): string {
   pushIfValue("Job bag email", briefData.job_bag_email);
   lines.push("");
 
+  // Helper to format ISO date strings to YYYY-MM-DD
+  const formatDate = (isoString: any) => {
+    if (!isoString || typeof isoString !== "string") return isoString;
+    // Take the first 10 characters (YYYY-MM-DD)
+    return isoString.slice(0, 10);
+  };
+
   // Timing & priority
   lines.push("=== Timing & Priority ===");
-  pushIfValue("Campaign start", briefData.start_date);
-  pushIfValue("Campaign end", briefData.end_date);
-  pushIfValue("Kickstart", briefData.kickstart_date);
-  pushIfValue("First review", briefData.first_review_date);
-  pushIfValue("Sign-off deadline", briefData.sign_off_date);
+  pushIfValue("Campaign start", formatDate(briefData.start_date));
+  pushIfValue("Campaign end", formatDate(briefData.end_date));
+  pushIfValue("Kickstart", formatDate(briefData.kickstart_date));
+  pushIfValue("First review", formatDate(briefData.first_review_date));
+  pushIfValue("Sign-off deadline", formatDate(briefData.sign_off_date));
   pushIfValue("Priority", briefData.priority);
   pushIfValue("Budget", briefData.budget);
   pushIfValue("Billing type", briefData.billing_type);
