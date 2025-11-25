@@ -141,6 +141,52 @@ export async function createOutOfScopeNotification(
   await createMondayUpdate(apiKey, itemId, body);
 }
 
+// Create a subitem under a Monday item
+export async function createMondaySubitem(
+  apiKey: string,
+  parentItemId: string,
+  subitemName: string,
+  description?: string,
+): Promise<string> {
+  const mutation = `
+    mutation ($parent_item_id: ID!, $item_name: String!, $column_values: JSON) {
+      create_subitem (parent_item_id: $parent_item_id, item_name: $item_name, column_values: $column_values) {
+        id
+      }
+    }
+  `;
+
+  const variables: Record<string, unknown> = {
+    parent_item_id: parentItemId,
+    item_name: subitemName,
+  };
+
+  // If we have a description, try to put it into a "long text" column if present.
+  // This assumes a column with ID "long_text" or similar; adjust in the board if needed.
+  if (description) {
+    variables.column_values = JSON.stringify({
+      long_text: { text: description },
+    });
+  }
+
+  const response = await fetch("https://api.monday.com/v2", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: apiKey,
+    },
+    body: JSON.stringify({ query: mutation, variables }),
+  });
+
+  const data = await response.json();
+
+  if (data.errors) {
+    throw new Error(`Monday API Error (create_subitem): ${JSON.stringify(data.errors)}`);
+  }
+
+  return data.data.create_subitem.id as string;
+}
+
 // Build full brief text for Monday update (no PDF links)
 export function buildBriefSummary(briefData: any): string {
   const lines: string[] = [];

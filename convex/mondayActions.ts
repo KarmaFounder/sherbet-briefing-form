@@ -5,7 +5,9 @@ import {
   buildBriefSummary,
   createMondayUpdate,
   createOutOfScopeNotification,
+  createMondaySubitem,
 } from "./mondayHelpers";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Type declaration for process.env in Convex runtime
 declare const process: { env: Record<string, string | undefined> };
@@ -40,6 +42,17 @@ export const postBriefToMonday = action({
       const updateId = await createMondayUpdate(mondayApiKey, jobId, briefSummary);
 
       console.log(`[Monday Action] Successfully created update ${updateId}`);
+
+      // Generate structured subitems using Gemini and create them as Monday subitems
+      try {
+        await generateSubitemsForBrief({
+          mondayApiKey,
+          jobId,
+          briefData: args.briefData,
+        });
+      } catch (error) {
+        console.error("[Monday Action] Failed to generate or create subitems:", error);
+      }
 
       // Optionally notify Google Apps Script webhook so it can email the user
       if (googleWebhookUrl && args.briefData.user_email) {
@@ -88,4 +101,97 @@ async function sendGoogleWebhook(url: string, payload: unknown): Promise<void> {
     },
     body: JSON.stringify(payload),
   });
+}
+
+// --- Gemini-powered subitem generation ---
+
+type GeneratedSubitem = {
+  title: string;
+  description?: string;
+};
+
+async function generateSubitemsForBrief(params: {
+  mondayApiKey: string;
+  jobId: string;
+  briefData: any;
+}): Promise<void> {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  if (!geminiApiKey) {
+    console.log("[Monday Action] GEMINI_API_KEY not set; skipping subitem generation.");
+    return;
+  }
+
+  console.log("[Monday Action] Starting Gemini subitem generation for job", params.jobId);
+
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  console.log("[Monday Action] Using Gemini model", modelName);
+
+  const client = new GoogleGenerativeAI(geminiApiKey);
+  const model = client.getGenerativeModel({ model: modelName });
+
+  const briefSummary = buildBriefSummary(params.briefData);
+
+  const systemInstruction =
+    "You are a project management assistant for a creative agency using Monday.com. " +
+    "Given a detailed campaign brief, break it down into a concise list of execution tasks " +
+    "that should be created as subitems under the parent Monday item. " +
+    "Each task must have a short, action-oriented title and an optional longer description. " +
+    "Return ONLY valid JSON matching this TypeScript type: { subitems: { title: string; description?: string }[] }.";
+
+  const prompt = [
+    systemInstruction,
+    "",
+    "Brief:",
+    "" + briefSummary,
+  ].join("\n");
+
+  const result = await model.generateContent({
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: prompt }],
+      },
+    ],
+    generationConfig: {
+      responseMimeType: "application/json",
+    },
+  });
+
+  const text = result.response.text();
+
+  let parsed: { subitems: GeneratedSubitem[] } | null = null;
+  try {
+    parsed = JSON.parse(text) as { subitems: GeneratedSubitem[] };
+  } catch (error) {
+    console.error("[Monday Action] Failed to parse Gemini JSON for subitems:", error, text);
+    return;
+  }
+
+  if (!parsed.subitems || parsed.subitems.length === 0) {
+    console.log("[Monday Action] Gemini returned no subitems; skipping creation.");
+    return;
+  }
+
+  // Cap the number of subitems we create in Monday to avoid overloading the board.
+  const subitems = parsed.subitems.slice(0, 10);
+  if (parsed.subitems.length > subitems.length) {
+    console.log(
+      `[Monday Action] Capping Gemini subitems from ${parsed.subitems.length} to ${subitems.length} for job ${params.jobId}`,
+    );
+  }
+
+  for (const sub of subitems) {
+    if (!sub.title) continue;
+    try {
+      const subitemId = await createMondaySubitem(
+        params.mondayApiKey,
+        params.jobId,
+        sub.title,
+        sub.description,
+      );
+      console.log(`[Monday Action] Created subitem ${subitemId} for job ${params.jobId}`);
+    } catch (error) {
+      console.error("[Monday Action] Error creating Monday subitem:", error);
+    }
+  }
 }
