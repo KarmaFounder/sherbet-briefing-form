@@ -135,6 +135,9 @@ async function generateSubitemsForBrief(params: {
     "You are a project management assistant for a creative agency using Monday.com. " +
     "Given a detailed campaign brief, break it down into a concise list of execution tasks " +
     "that should be created as subitems under the parent Monday item. " +
+    "Focus on concrete executional work (e.g. writing, design, production, rollout steps). " +
+    "Do NOT create subitems for generic workflow stages such as internal review, internal QA, or final client sign-off, " +
+    "as these are already handled via the board's status/labels. " +
     "Each task must have a short, action-oriented title and an optional longer description. " +
     "Return ONLY valid JSON matching this TypeScript type: { subitems: { title: string; description?: string }[] }.";
 
@@ -172,11 +175,30 @@ async function generateSubitemsForBrief(params: {
     return;
   }
 
+  // Filter out redundant workflow-stage tasks like internal review / final sign-off
+  const bannedPatterns = [
+    /internal review/i,
+    /internal (qa|q\.a\.)/i,
+    /internal sign[- ]?off/i,
+    /final (project )?sign[- ]?off/i,
+    /client sign[- ]?off/i,
+  ];
+
+  const filtered = parsed.subitems.filter((sub) => {
+    if (!sub.title) return false;
+    return !bannedPatterns.some((re) => re.test(sub.title));
+  });
+
+  if (filtered.length === 0) {
+    console.log("[Monday Action] All Gemini subitems were filtered out as workflow-stage tasks; skipping creation.");
+    return;
+  }
+
   // Cap the number of subitems we create in Monday to avoid overloading the board.
-  const subitems = parsed.subitems.slice(0, 10);
-  if (parsed.subitems.length > subitems.length) {
+  const subitems = filtered.slice(0, 10);
+  if (filtered.length > subitems.length) {
     console.log(
-      `[Monday Action] Capping Gemini subitems from ${parsed.subitems.length} to ${subitems.length} for job ${params.jobId}`,
+      `[Monday Action] Capping Gemini subitems from ${filtered.length} to ${subitems.length} for job ${params.jobId}`,
     );
   }
 
