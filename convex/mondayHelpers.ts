@@ -187,43 +187,6 @@ export async function createMondaySubitem(
   return data.data.create_subitem.id as string;
 }
 
-// Update a column (e.g. Internal Review Log) on a Monday item with a JSON value
-export async function updateMondayColumnValue(
-  apiKey: string,
-  itemId: string,
-  columnId: string,
-  value: unknown,
-): Promise<void> {
-  const mutation = `
-    mutation ($item_id: ID!, $column_id: String!, $value: JSON!) {
-      change_column_value (item_id: $item_id, column_id: $column_id, value: $value) {
-        id
-      }
-    }
-  `;
-
-  const variables = {
-    item_id: itemId,
-    column_id: columnId,
-    value: JSON.stringify(value),
-  };
-
-  const response = await fetch("https://api.monday.com/v2", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: apiKey,
-    },
-    body: JSON.stringify({ query: mutation, variables }),
-  });
-
-  const data = await response.json();
-
-  if (data.errors) {
-    throw new Error(`Monday API Error (change_column_value): ${JSON.stringify(data.errors)}`);
-  }
-}
-
 // Build full brief text for Monday update (no PDF links)
 export function buildBriefSummary(briefData: any): string {
   const lines: string[] = [];
