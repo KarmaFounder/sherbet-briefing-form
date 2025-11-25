@@ -6,6 +6,7 @@ import {
   createMondayUpdate,
   createOutOfScopeNotification,
   createMondaySubitem,
+  updateMondayColumnValue,
 } from "./mondayHelpers";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -87,6 +88,37 @@ export const postBriefToMonday = action({
       return { success: true, jobId, updateId };
     } catch (error) {
       console.error("[Monday Action] Error posting update:", error);
+      return { success: false, message: String(error) };
+    }
+  },
+});
+
+// Action to log the time when a task enters Internal Review stage
+// This is intended to be called from a Monday.com automation/webhook that
+// triggers specifically when the task stage column is set to "Internal Review".
+export const logInternalReviewTime = action({
+  args: {
+    itemId: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const mondayApiKey = process.env.MONDAY_API_TOKEN;
+    const logColumnId = process.env.MONDAY_INTERNAL_REVIEW_LOG_COLUMN_ID;
+
+    if (!mondayApiKey || !logColumnId) {
+      console.log("[Monday Action] Missing MONDAY_API_TOKEN or MONDAY_INTERNAL_REVIEW_LOG_COLUMN_ID");
+      return { success: false, message: "Missing Monday API configuration" };
+    }
+
+    const timestamp = new Date().toISOString();
+
+    try {
+      await updateMondayColumnValue(mondayApiKey, args.itemId, logColumnId, timestamp);
+      console.log(
+        `[Monday Action] Logged Internal Review timestamp ${timestamp} to column ${logColumnId} for item ${args.itemId}`,
+      );
+      return { success: true, itemId: args.itemId, timestamp };
+    } catch (error) {
+      console.error("[Monday Action] Failed to update Internal Review Log column:", error);
       return { success: false, message: String(error) };
     }
   },
