@@ -102,10 +102,11 @@ export const logInternalReviewTime = action({
   },
   handler: async (_ctx, args) => {
     const mondayApiKey = process.env.MONDAY_API_TOKEN;
-    const logColumnId = process.env.MONDAY_INTERNAL_REVIEW_LOG_COLUMN_ID;
+    // Hard-coded column ID for the "Internal Review Log" column on the subitems board
+    const logColumnId = "date_mky114j6";
 
-    if (!mondayApiKey || !logColumnId) {
-      console.log("[Monday Action] Missing MONDAY_API_TOKEN or MONDAY_INTERNAL_REVIEW_LOG_COLUMN_ID");
+    if (!mondayApiKey) {
+      console.log("[Monday Action] Missing MONDAY_API_TOKEN");
       return { success: false, message: "Missing Monday API configuration" };
     }
 
